@@ -1,0 +1,26 @@
+{
+  "$schema": "NSDA Public Forum round timing — CORRECTED order (3 crossfires, rebuttals by 2nd speakers, grand crossfire after both summaries)",
+  "title": "PFRoundSequence",
+  "prepTimePerTeamSeconds": 180,
+  "prepTimeNote": "3:00 cumulative prep per team (NSDA standard 2025-2026). Used between speeches at a team's discretion; not a speech. Make configurable for non-NSDA tournaments.",
+  "sequence": [
+    { "order": 1,  "label": "Pro Constructive",  "speaker": "pro1", "minutes": 4, "purpose": "Lay out the Pro case (contentions)" },
+    { "order": 2,  "label": "Con Constructive",  "speaker": "con1", "minutes": 4, "purpose": "Lay out the Con case (contentions)" },
+    { "order": 3,  "label": "First Crossfire",   "participants": ["pro1", "con1"], "minutes": 3, "purpose": "1st speakers question each other; Pro (who spoke first) asks the first question" },
+    { "order": 4,  "label": "Pro Rebuttal",      "speaker": "pro2", "minutes": 4, "purpose": "Pro 2nd speaker clashes with the Con case" },
+    { "order": 5,  "label": "Con Rebuttal",      "speaker": "con2", "minutes": 4, "purpose": "Con 2nd speaker clashes with the Pro case" },
+    { "order": 6,  "label": "Second Crossfire",  "participants": ["pro2", "con2"], "minutes": 3, "purpose": "2nd speakers question each other; Pro asks the first question" },
+    { "order": 7,  "label": "Pro Summary",       "speaker": "pro1", "minutes": 3, "purpose": "1st speaker crystallizes key issues" },
+    { "order": 8,  "label": "Con Summary",       "speaker": "con1", "minutes": 3, "purpose": "1st speaker crystallizes key issues" },
+    { "order": 9,  "label": "Grand Crossfire",   "participants": ["pro1", "pro2", "con1", "con2"], "minutes": 3, "purpose": "All four debaters (seated) question/answer at will after the first question" },
+    { "order": 10, "label": "Pro Final Focus",   "speaker": "pro2", "minutes": 2, "purpose": "Impact calculus; persuasive close. NO new arguments allowed." },
+    { "order": 11, "label": "Con Final Focus",   "speaker": "con2", "minutes": 2, "purpose": "Last speech of the round. Impact calculus; NO new arguments allowed." }
+  ],
+  "correctionsToNaiveOrder": [
+    "PF has only THREE crossfires (First after both Constructives, Second after both Rebuttals, Grand after both Summaries) — NOT a crossfire after every speech.",
+    "Rebuttals are delivered by the SECOND speakers (Pro-2, Con-2), not the first.",
+    "Summaries are delivered by the FIRST speakers (Pro-1, Con-1).",
+    "Grand Crossfire comes AFTER both Summaries, not between them.",
+    "Final Focus bars new arguments — impact weighing/persuasive close only."
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "Judge ballot — NSDA Public Forum (Tabroom-style)",
+  "title": "JudgeBallot",
+  "type": "object",
+  "required": ["ballotId", "round", "judge", "winner", "speakerPoints", "reasonForDecision"],
+  "properties": {
+    "ballotId": { "type": "string" },
+    "round": {
+      "type": "object",
+      "properties": {
+        "tournament": { "type": "string" },
+        "roundLabel": { "type": "string", "description": "e.g. 'Round 3', 'Octafinals'" },
+        "affirmative": { "type": "string", "description": "Pro team code/name" },
+        "negative": { "type": "string", "description": "Con team code/name" },
+        "topic": { "type": "string", "description": "Resolution debated" }
+      }
+    },
+    "judge": {
+      "type": "object",
+      "properties": { "name": { "type": "string" }, "rating": { "type": "string", "description": "Optional judge paradigm/rating (1-5)" } }
+    },
+    "winner": { "enum": ["pro", "con"], "description": "Side that won the round" },
+    "speakerPoints": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "description": "One score PER SPEAKER (4 debaters). NSDA/Tabroom scale: 25-30, half-point increments (no tenths). 25 = misconduct/rudeness; 30 = outstanding.",
+      "items": {
+        "type": "object", "required": ["debaterId", "points"],
+        "properties": {
+          "debaterId": { "enum": ["pro1", "pro2", "con1", "con2"] },
+          "points": { "type": "number", "minimum": 25, "maximum": 30, "multipleOf": 0.5 }
+        }
+      }
+    },
+    "ranks": {
+      "type": "array", "maxItems": 4,
+      "description": "Optional. Rank 1 (best) through 4 across the four debaters. Used by some tournaments; 1 = best speaker.",
+      "items": {
+        "type": "object",
+        "properties": { "debaterId": { "enum": ["pro1", "pro2", "con1", "con2"] }, "rank": { "type": "integer", "minimum": 1, "maximum": 4 } }
+      }
+    },
+    "reasonForDecision": { "type": "string", "description": "RFD: written justification based on arguments presented" },
+    "comments": {
+      "type": "object", "description": "Per-debater / per-team written feedback",
+      "properties": {
+        "pro1": { "type": "string" }, "pro2": { "type": "string" },
+        "con1": { "type": "string" }, "con2": { "type": "string" },
+        "generalPro": { "type": "string" }, "generalCon": { "type": "string" }
+      }
+    },
+    "lowPointWin": { "type": "boolean", "description": "True if the winning side did NOT have the higher total speaker points. Tournament rules vary on whether this is permitted." }
+  }
+}

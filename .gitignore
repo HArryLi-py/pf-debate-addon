@@ -1,0 +1,12 @@
+# clasp local config (standalone project we're not actively using; bound script is the live one)
+.clasp.json
+.claspignore
+
+# OS
+.DS_Store
+
+# node / clasp local installs
+node_modules/
+
+# logs
+*.log

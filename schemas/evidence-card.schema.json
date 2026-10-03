@@ -1,0 +1,24 @@
+{
+  "$schema": "Evidence card — a single piece of debate evidence",
+  "title": "EvidenceCard",
+  "type": "object",
+  "required": ["cardId", "tag", "author", "source", "date", "quotedText"],
+  "properties": {
+    "cardId": { "type": "string", "description": "Stable unique id, e.g. ev-001" },
+    "tag": { "type": "string", "description": "Tag/tagline — one-sentence claim this card proves" },
+    "author": { "type": "string", "description": "Full name of primary author/editor (NSDA-required)" },
+    "authorQualification": { "type": "string", "description": "Author's expertise/credentials, e.g. 'PhD Economics, MIT'" },
+    "source": { "type": "string", "description": "Publication / complete source title" },
+    "articleTitle": { "type": "string", "description": "Title of the article/piece" },
+    "date": { "type": "string", "format": "date", "description": "Publication date ISO 8601 (YYYY-MM-DD)" },
+    "url": { "type": "string", "format": "uri", "description": "Full URL for digital sources" },
+    "accessed": { "type": "string", "format": "date", "description": "Date URL was accessed (NSDA requires for online evidence)" },
+    "quotedText": { "type": "string", "description": "VERBATIM quoted text — the source's actual words, not a debater's summary" },
+    "paraphrased": { "type": "boolean", "default": false, "description": "True if paraphrase. NSDA permits paraphrasing IF full citation is given and held to the same accuracy standard." },
+    "highlightedSpan": {
+      "type": "object", "description": "Optional portion of quotedText to read aloud (highlighted region)",
+      "properties": { "start": { "type": "integer" }, "end": { "type": "integer" } }
+    },
+    "notes": { "type": "string", "description": "Cutting notes / analytic tags, optional" }
+  }
+}

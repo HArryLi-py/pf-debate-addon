@@ -1,0 +1,67 @@
+{
+  "$schema": "Flow grid — columns per debater, rows per argument; cells track the argument across that debater's speeches",
+  "title": "FlowGrid",
+  "type": "object",
+  "required": ["gridId", "columns", "rows"],
+  "properties": {
+    "gridId": { "type": "string" },
+    "columns": {
+      "type": "array", "minItems": 4, "description": "One column per debater: Pro-1, Pro-2, Con-1, Con-2",
+      "items": {
+        "type": "object", "required": ["debaterId", "side", "speakerNumber"],
+        "properties": {
+          "debaterId": { "enum": ["pro1", "pro2", "con1", "con2"] },
+          "side": { "enum": ["pro", "con"] },
+          "speakerNumber": { "enum": [1, 2] },
+          "speeches": {
+            "type": "array", "description": "Speeches this debater delivers (NSDA PF roles): pro1/con1 → [constructive, summary]; pro2/con2 → [rebuttal, finalFocus]",
+            "items": { "enum": ["constructive", "rebuttal", "summary", "finalFocus"] }
+          }
+        }
+      }
+    },
+    "rows": {
+      "type": "array", "description": "One row per contention/argument",
+      "items": {
+        "type": "object", "required": ["rowId", "label"],
+        "properties": {
+          "rowId": { "type": "string" },
+          "label": { "type": "string", "description": "e.g. 'Pro Contention 1' / 'Con DA' / 'Pro Turn on C2'" },
+          "side": { "enum": ["pro", "con", "both"] },
+          "originatingSpeech": { "enum": ["proConstructive", "conConstructive", "proRebuttal", "conRebuttal", "proSummary", "conSummary"] },
+          "cells": {
+            "type": "object", "description": "Keyed by debaterId. Each holds that debater's flow entries across their speeches for THIS argument.",
+            "properties": {
+              "pro1": { "$ref": "#/definitions/debaterCell", "description": "speeches: constructive, summary" },
+              "pro2": { "$ref": "#/definitions/debaterCell", "description": "speeches: rebuttal, finalFocus" },
+              "con1": { "$ref": "#/definitions/debaterCell", "description": "speeches: constructive, summary" },
+              "con2": { "$ref": "#/definitions/debaterCell", "description": "speeches: rebuttal, finalFocus" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "debaterCell": {
+      "type": "object", "description": "For one debater on one argument: entries keyed by the speeches that debater gives.",
+      "properties": {
+        "constructive": { "$ref": "#/definitions/flowEntry" },
+        "rebuttal": { "$ref": "#/definitions/flowEntry" },
+        "summary": { "$ref": "#/definitions/flowEntry" },
+        "finalFocus": { "$ref": "#/definitions/flowEntry" }
+      }
+    },
+    "flowEntry": {
+      "type": "object",
+      "properties": {
+        "present": { "type": "boolean", "description": "Did this debater address this argument in this speech?" },
+        "note": { "type": "string", "description": "Short shorthand of what was said" },
+        "evidenceRefs": { "type": "array", "items": { "type": "string" }, "description": "cardIds used" },
+        "responseType": { "enum": ["claim", "defense", "link", "turn", "delink", "impact", "weighing", "concession", "drop"] },
+        "dropped": { "type": "boolean", "description": "True if conceded/dropped here" },
+        "timestampSec": { "type": "number", "description": "Optional: seconds into the speech" }
+      }
+    }
+  }
+}

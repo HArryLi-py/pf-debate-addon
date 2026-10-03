@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "spike": {
+      ".read": true,
+      ".write": true,
+      "rounds": { ".indexOn": ["sentAt"] }
+    },
+    "$other": { ".read": false, ".write": false }
+  }
+}

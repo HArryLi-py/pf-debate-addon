@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root{--bg:#fff;--fg:#1a1a1a;--muted:#666;--ok:#1b873f;--warn:#a35a00;--err:#b3261a;--card:#f6f7f9;--line:#dcdfe4;--font-stack:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  body{margin:0;padding:12px 14px 20px;font-family:var(--font-stack);font-size:13px;line-height:1.5;color:var(--fg);background:var(--bg)}
+  h1{font-size:14px;margin:0 0 8px} h2{font-size:12px;margin:14px 0 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .row{display:flex;gap:8px;align-items:center;margin:6px 0}
+  button{font-family:var(--font-stack);font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--fg);cursor:pointer}
+  button.primary{background:#1a73e8;color:#fff;border-color:#1a73e8} button:disabled{opacity:.5;cursor:default}
+  input[type=text]{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;flex:1;min-width:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0}
+  .kv{display:flex;justify-content:space-between;gap:8px;font-size:12px} .kv .k{color:var(--muted)} .kv .v{font-variant-numeric:tabular-nums;text-align:right;word-break:break-all}
+  .badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:600}
+  .badge.tier1{background:#e6f4ea;color:var(--ok)} .badge.tier2{background:#fef7e0;color:var(--warn)} .badge.tier3{background:#fce8e6;color:var(--err)} .badge.tier0{background:#eee;color:#333}
+  .log{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;max-height:180px;overflow:auto;background:#fafbfc;border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+  .log .t{color:var(--muted)} .log .e{color:var(--err)} .log .ok{color:var(--ok)}
+  .latency{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums} .hint{font-size:11px;color:var(--muted);margin-top:2px}
+</style>
+</head>
+<body>
+<h1>Firebase RTDB ↔ Docs sidebar spike</h1>
+<div class="card">
+  <div class="row"><span class="badge tier0" id="tier">BOOT</span><span style="flex:1"></span><span id="conn" class="kv" style="font-size:11px">—</span></div>
+  <div class="kv"><span class="k">round</span><span class="v" id="round">…</span></div>
+  <div class="kv"><span class="k">viewer</span><span class="v" id="viewer">…</span></div>
+  <div class="kv"><span class="k">transport</span><span class="v" id="transport">—</span></div>
+</div>
+<h2>Cross-client propagation</h2>
+<div class="card">
+  <div class="kv"><span class="k">last received</span><span class="v" id="lastMsg">—</span></div>
+  <div class="kv"><span class="k">last latency</span><span class="v"><span class="latency" id="latency">—</span><span id="latUnit"></span></span></div>
+</div>
+<div class="row"><input type="text" id="msg" placeholder="message to push" value="hello"><button class="primary" id="writeBtn" disabled>Write</button></div>
+<div class="row"><button id="autoBtn" disabled>Auto-write 5x</button><span class="hint" id="roundHint"></span></div>
+<h2>Tier 3 fallback (poll)</h2>
+<div class="row"><input type="text" id="pollMsg" value="poll hello"><button id="pollBtn" disabled>Poll write</button></div>
+<div class="hint">Tier 3 uses <code>google.script.run</code> → server <code>UrlFetchApp</code> → Firebase REST. ~250 ms RTT, not realtime.</div>
+<h2>Log</h2>
+<div class="log" id="log"></div>
+<script>
+// Loads Firebase v9 modular SDK via ESM dynamic import(). If the HtmlService
+// IFRAME sandbox blocks module scripts (it should NOT), falls back to:
+//   Tier 2: Firebase REST streaming (EventSource to .json)
+//   Tier 3: google.script.run → server UrlFetchApp polling
+const FIREBASE_VERSION = "12.19.0";
+const ESM_APP = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app.js`;
+const ESM_DB  = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-database.js`;
+const UMD_APP = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app-compat.js`;
+const UMD_DB  = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-database-compat.js`;
+const $ = (id) => document.getElementById(id);
+let BOOT = null, activeTier = 0, transport = "—";
+
+// WebSocket transport detector: patch the global before Firebase inits.
+let wsObserved = false;
+const _OrigWS = window.WebSocket;
+window.WebSocket = function(url, protocols){
+  if (typeof url === "string" && url.indexOf("firebaseio.com") >= 0){
+    wsObserved = true; setTransport("websocket");
+    log("ws open → " + url.replace(/token=[^&]*/, "token=…"), "ok");
+  }
+  return protocols !== undefined ? new _OrigWS(url, protocols) : new _OrigWS(url);
+};
+window.WebSocket.prototype = _OrigWS.prototype;
+
+function log(msg, cls){
+  const el = $("log"), t = new Date().toISOString().slice(11,23), line = document.createElement("div");
+  if(cls) line.className = cls;
+  line.innerHTML = `<span class="t">${t}</span> ${escapeHtml(msg)}`;
+  el.appendChild(line); el.scrollTop = el.scrollHeight;
+}
+function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function setTier(n){activeTier=n; const b=$("tier"); b.textContent=["BOOT","SDK live","REST stream","Server poll"][n]; b.className="badge tier"+n;}
+function setTransport(s){transport=s; $("transport").textContent=s;}
+function setConn(s){$("conn").textContent=s;}
+
+google.script.run.withSuccessHandler(onBoot).getBootstrap();
+function onBoot(cfg){
+  BOOT=cfg; $("round").textContent=BOOT.roundId; $("viewer").textContent=BOOT.viewerId;
+  $("roundHint").textContent="round shared by both sidebars: "+BOOT.roundId;
+  log("bootstrap: round="+BOOT.roundId+" viewer="+BOOT.viewerId, "t");
+  tryTier1Sdk();
+}
+
+// TIER 1: v9 modular SDK via ESM dynamic import. THE CASE UNDER TEST.
+async function tryTier1Sdk(){
+  log("Tier1: importing Firebase ESM from gstatic…", "t");
+  let app, db, ref, onValue, set;
+  try {
+    const appMod = await import(ESM_APP);
+    const dbMod  = await import(ESM_DB);
+    app = appMod.initializeApp({ databaseURL: BOOT.dbHost });
+    db  = dbMod.getDatabase(app);
+    ref = dbMod.ref; onValue = dbMod.onValue; set = dbMod.set;
+    log("Tier1: ESM imported OK (app+database)", "ok");
+  } catch (e){ log("Tier1 ESM import FAILED: "+e.message, "e"); return tryTier1bCompat(); }
+  const connRef = ref(db, ".info/connected");
+  onValue(connRef, (snap)=>{ setConn(snap.val()?"connected":"disconnected"); if(snap.val()&&!wsObserved) setTransport("long-polling"); });
+  const roundRef = ref(db, BOOT.testPath+"/"+BOOT.roundId);
+  setTier(1); $("writeBtn").disabled=false; $("autoBtn").disabled=false;
+  let writeN = 0;
+  onValue(roundRef, (snap)=>{
+    const v = snap.val(); if(!v){ $("lastMsg").textContent="(empty)"; return; }
+    $("lastMsg").textContent = JSON.stringify(v.msg);
+    if(v.writerId === BOOT.viewerId) return; // own echo
+    const lat = Date.now() - (v.sentAt|0);
+    $("latency").textContent = (lat>=0?lat:"—"); $("latUnit").textContent = " ms";
+    log(`RECV from ${v.writerId}: "${v.msg}" (propagation ${lat} ms)`, "ok");
+  });
+  $("writeBtn").onclick = () => writeOne();
+  $("autoBtn").onclick  = () => { for(let i=1;i<=5;i++) setTimeout(writeOne, i*1200); };
+  async function writeOne(){
+    writeN++;
+    const payload = { msg: $("msg").value+" #"+writeN, writerId: BOOT.viewerId, sentAt: Date.now(), n: writeN };
+    try { await set(roundRef, payload); log("wrote #"+writeN, "ok"); } catch(e){ log("write FAILED: "+e.message, "e"); }
+  }
+  setTimeout(()=>{ if(transport==="—") setTransport(wsObserved?"websocket":"long-polling"); }, 6000);
+}
+
+// TIER 1b: v9-compat/v8 UMD via plain <script src>. Only if ESM blocked.
+function tryTier1bCompat(){
+  log("Tier1b: loading compat UMD build…", "t");
+  const s1 = document.createElement("script"); s1.src=UMD_APP; s1.async=true;
+  s1.onload = ()=>{ const s2=document.createElement("script"); s2.src=UMD_DB; s2.async=true;
+    s2.onload = initCompat; s2.onerror = ()=>{log("Tier1b UMD load FAILED","e"); tryTier2RestStream();};
+    document.head.appendChild(s2); };
+  s1.onerror = ()=>{log("Tier1b UMD load FAILED","e"); tryTier2RestStream();};
+  document.head.appendChild(s1);
+}
+function initCompat(){
+  try {
+    firebase.initializeApp({ databaseURL: BOOT.dbHost });
+    const dbRef = firebase.database().ref(BOOT.testPath+"/"+BOOT.roundId);
+    setTier(1); $("writeBtn").disabled=false; $("autoBtn").disabled=false;
+    firebase.database().ref(".info/connected").on("value",(s)=>setConn(s.val()?"connected":"disconnected"));
+    dbRef.on("value",(snap)=>{ const v=snap.val(); if(!v) return;
+      $("lastMsg").textContent=JSON.stringify(v.msg);
+      if(v.writerId===BOOT.viewerId) return;
+      $("latency").textContent=(Date.now()-(v.sentAt|0)); $("latUnit").textContent=" ms";
+      log(`RECV(compat) from ${v.writerId}: "${v.msg}"`, "ok"); });
+    $("writeBtn").onclick = ()=> dbRef.set({msg:$("msg").value,writerId:BOOT.viewerId,sentAt:Date.now()});
+    log("Tier1b: compat SDK live (UMD)", "ok"); if(!wsObserved) setTransport("compat-umd");
+  } catch(e){ log("Tier1b init FAILED: "+e.message, "e"); tryTier2RestStream(); }
+}
+
+// TIER 2: Firebase REST streaming (SSE/long-poll) via EventSource.
+let es = null;
+function tryTier2RestStream(){
+  setTier(2); setTransport("rest-stream"); log("Tier2: opening REST stream (EventSource)…", "t");
+  const url = BOOT.dbHost+"/"+BOOT.testPath+"/"+encodeURIComponent(BOOT.roundId)+"/.json"+
+    (BOOT.auth?"?auth="+encodeURIComponent(BOOT.auth):"");
+  try {
+    es = new EventSource(url);
+    es.addEventListener("put",(e)=>{ try { const d=JSON.parse(e.data);
+      if(d.data && d.data.writerId && d.data.writerId!==BOOT.viewerId){
+        const lat=Date.now()-(d.data.sentAt|0);
+        $("lastMsg").textContent=JSON.stringify(d.data.msg);
+        $("latency").textContent=lat; $("latUnit").textContent=" ms";
+        log(`REST RECV from ${d.data.writerId}: "${d.data.msg}" (${lat} ms)`, "ok"); } } catch(err){ log("REST parse err: "+err.message, "e"); } });
+    es.addEventListener("keep-alive",()=>log("REST keep-alive","t"));
+    es.addEventListener("cancel",(e)=>log("REST cancel: "+e.data,"e"));
+    es.onerror = ()=>log("REST stream error/EOF (auto-reconnect)","e");
+    setConn("stream-open"); $("writeBtn").disabled=false; $("writeBtn").onclick=restWrite;
+    log("Tier2: REST stream open", "ok");
+  } catch(e){ log("Tier2 EventSource FAILED: "+e.message, "e"); tryTier3Poll(); }
+}
+function restWrite(){
+  const url = BOOT.dbHost+"/"+BOOT.testPath+"/"+encodeURIComponent(BOOT.roundId)+"/.json"+
+    (BOOT.auth?"?auth="+encodeURIComponent(BOOT.auth):"");
+  const payload = { msg:$("msg").value, writerId:BOOT.viewerId, sentAt:Date.now() };
+  fetch(url, { method:"PUT", body:JSON.stringify(payload) })
+    .then(r=>r.ok?log("REST wrote","ok"):log("REST write "+r.status,"e"))
+    .catch(e=>log("REST write err: "+e.message, "e"));
+}
+
+// TIER 3: server-side UrlFetchApp polling via google.script.run.
+let pollSeen=0;
+function tryTier3Poll(){
+  setTier(3); setTransport("server-poll"); setConn("polling"); $("pollBtn").disabled=false;
+  $("pollBtn").onclick = ()=>{ const payload={msg:$("pollMsg").value,writerId:BOOT.viewerId,sentAt:Date.now()};
+    google.script.run.withSuccessHandler(s=>log("poll wrote: "+s,"ok")).serverWriteRound(BOOT.roundId, payload); };
+  setInterval(()=>{ google.script.run.withSuccessHandler(onPollRead).serverReadRound(BOOT.roundId); }, 400);
+  log("Tier3: server polling @ 400 ms", "t");
+}
+function onPollRead(raw){
+  if(!raw || raw.slice(0,1)!="{"){ if(raw) log("poll read: "+raw,"e"); return; }
+  let v; try{ v=JSON.parse(raw); } catch(e){ return; }
+  if(!v || !v.sentAt) return; if(v.sentAt===pollSeen) return; pollSeen=v.sentAt;
+  if(v.writerId===BOOT.viewerId) return;
+  const lat=Date.now()-(v.sentAt|0);
+  $("lastMsg").textContent=JSON.stringify(v.msg); $("latency").textContent=lat; $("latUnit").textContent=" ms";
+  log(`POLL RECV from ${v.writerId}: "${v.msg}" (total ${lat} ms)`, "ok");
+}
+</script>
+</body>
+</html>

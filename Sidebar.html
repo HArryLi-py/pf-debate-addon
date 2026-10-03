@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root{
+      --bg:#ffffff;
+      --bg-2:#f5f8fc;            /* input surface */
+      --bg-3:#eaf0fa;            /* hover surface */
+      --line:#e1e6f0;
+      --line-2:#cdd6e6;
+      --fg:#162033;
+      --muted:#5f6b80;
+      --accent:#2563eb;          /* premium blue */
+      --accent-2:#1d4ed8;        /* hover */
+      --accent-soft:rgba(37,99,235,.12);
+      --ok:#16a34a;
+      --ok-bg:#e7f6ec;
+      --err:#dc2626;
+      --err-bg:#fdecec;
+      --r:10px;
+      --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{font-family:var(--font);font-size:13px;line-height:1.5;color:var(--fg);background:var(--bg);
+         margin:0;padding:14px 14px 18px;-webkit-font-smoothing:antialiased}
+
+    h3{font-size:15px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
+    .mark{width:22px;height:2px;background:var(--accent);border-radius:1px;margin-bottom:12px}
+
+    h4{font-size:11px;font-weight:600;color:var(--muted);margin:16px 0 6px;letter-spacing:.01em}
+    h4:first-of-type{margin-top:10px}
+
+    label{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px;font-weight:500}
+    input,textarea{
+      font:inherit;font-size:13px;color:var(--fg);background:var(--bg-2);
+      border:1px solid var(--line);border-radius:var(--r);width:100%;padding:7px 9px;
+      transition:border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    }
+    input::placeholder,textarea::placeholder{color:#9aa4b8}
+    input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:#fff}
+    textarea{resize:vertical;min-height:50px;line-height:1.45}
+
+    .row{display:flex;gap:8px;align-items:center;margin:8px 0}
+    .macros{display:flex;gap:8px}
+    .macros button{flex:1}
+
+    button{
+      font:inherit;font-size:13px;font-weight:500;color:var(--fg);
+      background:#fff;border:1px solid var(--line-2);border-radius:var(--r);
+      padding:8px 12px;cursor:pointer;width:100%;
+      transition:background 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 160ms ease, color 140ms ease;
+    }
+    button:hover{background:var(--bg-3);border-color:var(--accent);color:var(--accent-2);transform:translateY(-1px)}
+    button:active{transform:translateY(0) scale(.985)}
+    button:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+    /* primary: solid blue, soft glow on hover — the memorable moment */
+    button.primary{
+      color:#fff;background:var(--accent);border-color:transparent;font-weight:600;
+    }
+    button.primary:hover{background:var(--accent-2);color:#fff;box-shadow:0 6px 18px -6px rgba(37,99,235,.55)}
+    button.primary:active{box-shadow:0 2px 8px -4px rgba(37,99,235,.5)}
+
+    /* success flash on generate — one orchestrated confirmation */
+    button.is-success{background:var(--ok) !important;border-color:transparent;box-shadow:0 6px 18px -6px rgba(22,163,74,.5)}
+
+    .hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.45}
+    hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+
+    /* prominent status — visible alert box so errors aren't missed */
+    #status{
+      margin-top:10px;font-size:12px;line-height:1.45;min-height:18px;
+      padding:8px 10px;border-radius:8px;background:var(--bg-2);color:var(--muted);
+      white-space:pre-wrap;border:1px solid transparent;
+    }
+    #status.ok{color:var(--ok);background:var(--ok-bg);border-color:rgba(22,163,74,.25)}
+    #status.err{color:var(--err);background:var(--err-bg);border-color:rgba(220,38,38,.25)}
+
+    @media (prefers-reduced-motion: reduce){
+      *{transition:none !important}
+      button:hover{transform:none}
+    }
+  </style>
+</head>
+<body>
+  <h3>PF Debate</h3>
+  <div class="mark"></div>
+
+  <h4>格式 · 先在 Doc 里选中文字</h4>
+  <div class="macros">
+    <button id="titleBtn">标题 Title</button>
+    <button id="blocksBtn">blocks</button>
+  </div>
+  <div class="hint">标题 = 整段居中 27pt 加粗下划线 + 大纲；blocks = 灰字 24pt 下划线。</div>
+
+  <hr>
+
+  <h4>生成 evidence card</h4>
+  <label>标题 Title</label>
+  <input id="title" placeholder="一句话论点">
+  <label>Citation</label>
+  <input id="citation" placeholder="作者, 资质, 来源, 日期">
+  <label>Quote 引用文字</label>
+  <textarea id="quote" placeholder="逐字原文"></textarea>
+  <label>Highlight（在 quote 里能找到的那段 → 加粗+下划线+黄底）</label>
+  <input id="highlight" placeholder="把要强调的几个字/词粘这里">
+  <div class="row"><button class="primary" id="genBtn">生成 card + 插链接</button></div>
+  <div class="hint">卡片追加到单独的 "PF Evidence Cards" 文档；同时在当前 Doc 光标处插超链接。第一次点会弹授权（drive.file），走一遍同意。</div>
+
+  <div id="status">Ready.</div>
+
+  <script>
+    var $ = function(id){ return document.getElementById(id); };
+    var status = $('status');
+    function setStatus(msg, cls){ status.textContent = msg; status.className = cls || ''; }
+
+    function call(fnName, args, onOk){
+      var runner = google.script.run.withSuccessHandler(function(res){
+        setStatus(onOk ? onOk(res) : (res || 'Done.'), 'ok');
+      }).withFailureHandler(function(err){ setStatus('Error: ' + err.message, 'err'); });
+      if (args && args.length) runner[fnName].apply(runner, args);
+      else runner[fnName]();
+    }
+
+    $('titleBtn').addEventListener('click', function(){ call('applyTitle', null, function(r){ return '标题 ✓ ' + r; }); });
+    $('blocksBtn').addEventListener('click', function(){ call('applyBlocks', null, function(r){ return 'blocks ✓ ' + r; }); });
+
+    var genBtn = $('genBtn');
+    genBtn.addEventListener('click', function(){
+      var form = {
+        title: $('title').value.trim(),
+        citation: $('citation').value.trim(),
+        quote: $('quote').value.trim(),
+        highlight: $('highlight').value.trim()
+      };
+      if (!form.title || !form.citation || !form.quote){
+        setStatus('标题、citation、quote 都要填。', 'err'); return;
+      }
+      setStatus('Generating…');
+      genBtn.disabled = true;
+      google.script.run
+        .withSuccessHandler(function(res){
+          setStatus(res, 'ok');
+          genBtn.disabled = false;
+          genBtn.classList.add('is-success');
+          setTimeout(function(){ genBtn.classList.remove('is-success'); }, 1200);
+        })
+        .withFailureHandler(function(err){
+          setStatus('Error: ' + err.message + '  （如果是权限/authorization 错，看上面 hint——第一次点要同意 drive.file 授权）', 'err');
+          genBtn.disabled = false;
+        })
+        .generateCard(form);
+    });
+  </script>
+</body>
+</html>

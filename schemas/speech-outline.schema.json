@@ -1,0 +1,50 @@
+{
+  "$schema": "Speech outline — contention-based case for one speech",
+  "title": "SpeechOutline",
+  "type": "object",
+  "required": ["outlineId", "speechType", "side", "speaker", "contentions"],
+  "properties": {
+    "outlineId": { "type": "string" },
+    "speechType": { "enum": ["constructive", "rebuttal", "summary", "finalFocus", "crossfire"] },
+    "side": { "enum": ["pro", "con"] },
+    "speaker": { "enum": [1, 2], "description": "1 = first speaker on that side, 2 = second" },
+    "framework": {
+      "type": "object", "description": "Optional value/criterion or burden framing",
+      "properties": { "value": { "type": "string" }, "criterion": { "type": "string" }, "burdenNote": { "type": "string" } }
+    },
+    "contentions": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["label", "claim"],
+        "properties": {
+          "label": { "type": "string", "description": "e.g. 'Contention 1' / 'Observation' / 'Off-case'" },
+          "claim": { "type": "string", "description": "The contention's thesis sentence" },
+          "subPoints": {
+            "type": "array",
+            "items": {
+              "type": "object", "required": ["label", "claim"],
+              "properties": {
+                "label": { "type": "string", "description": "e.g. 'A', '1', 'Link'" },
+                "claim": { "type": "string" },
+                "warrant": { "type": "string", "description": "Reasoning connecting claim to evidence" },
+                "evidenceRefs": { "type": "array", "items": { "type": "string" }, "description": "cardId values linking into EvidenceCard records" },
+                "impact": { "type": "string", "description": "Why this matters / magnitude-scope-timeframe" },
+                "responses": {
+                  "type": "array", "description": "For rebuttal/summary/FF: answers to an opponent's argument",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "targetRowId": { "type": "string", "description": "id of the argument being answered (links to FlowGrid row)" },
+                      "type": { "enum": ["defense", "turn", "delink", "impact-calc", "weighing", "concession"] },
+                      "text": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
