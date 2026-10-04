@@ -97,6 +97,16 @@
     .fb-result.err{color:var(--err);background:var(--err-bg);border-color:rgba(220,38,38,.25)}
     .fb-result.warn{color:#a35a00;background:#fef7e0;border-color:rgba(163,90,0,.25)}
 
+    /* phase 2: round phase + chat */
+    .phase-current{font-size:13px;font-weight:600;color:var(--accent-2);padding:7px 10px;background:var(--bg-3);border-radius:6px;margin:4px 0;line-height:1.4}
+    .phase-seq{font-size:11px;color:var(--muted);max-height:110px;overflow:auto;margin:4px 0}
+    .phase-item{padding:2px 8px;border-radius:4px;line-height:1.5}
+    .phase-item.current{color:var(--accent-2);font-weight:600;background:var(--accent-soft)}
+    .chat-list{font-size:12px;max-height:150px;overflow:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:4px 0}
+    .chat-msg{padding:2px 0;line-height:1.4;word-wrap:break-word}
+    .chat-msg b{color:var(--accent-2);margin-right:4px}
+    .chat-msg.me b{color:var(--ok)}
+
     @media (prefers-reduced-motion: reduce){
       *{transition:none !important; animation:none !important}
       button:hover{transform:none}
@@ -149,6 +159,28 @@
   </div>
   <div class="presets" id="debPresets"></div>
   <div class="hint">本地计时（Phase 1，不同步）。Phase 2 用 Firebase 同步给所有辩手。</div>
+
+  <hr>
+
+  <h4>辩论赛程状态（同步）</h4>
+  <div class="phase-current" id="phaseLabel">1. Pro Constructive (Pro-1 · 04:00)</div>
+  <div class="phase-seq" id="phaseSeq"></div>
+  <div class="row">
+    <button id="phasePrev">← 上一段</button>
+    <button class="primary" id="phaseNext">下一段 →</button>
+  </div>
+  <div class="hint">所有辩手同步显示当前赛段。点"下一段"自动把辩论计时器设为该段时长。</div>
+
+  <hr>
+
+  <h4>聊天（同步）</h4>
+  <label>你的名字</label>
+  <input id="chatName" placeholder="Debater-xxxx">
+  <div class="chat-list" id="chatList"><div class="hint" style="padding:4px">连上 Firebase 后显示消息…</div></div>
+  <div class="row">
+    <input id="chatInput" placeholder="发消息…" style="flex:1;min-width:0">
+    <button id="chatSendBtn" style="width:auto;flex:0 0 auto;padding:8px 14px">发送</button>
+  </div>
 
   <hr>
 
@@ -304,13 +336,17 @@
         return fbDb;
       });
     }
+    var currentRoundId = 'round-default';
     function connectSync(url){
       ensureFirebase(url).then(function(db){
         var mod = fbMods[1];
         google.script.run.withSuccessHandler(function(rid){
+          currentRoundId = rid;
           prepTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/prep');
           debTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/deb');
-          setFbResult('✓ 计时器同步已启用（round: '+rid+'）。A 按 Start，其他辩手侧边栏同时倒数。', 'ok');
+          phaseConnect(db, mod, 'pfdebate/rounds/'+rid+'/phase');
+          chatConnect(db, mod, 'pfdebate/rounds/'+rid+'/chat');
+          setFbResult('✓ 全部同步已启用（round: '+rid+'）：计时器 + 赛程 + 聊天', 'ok');
         }).withFailureHandler(function(e){ setFbResult('round ID 获取失败：'+e.message, 'err'); }).getRoundId();
       }).catch(function(e){ setFbResult('同步连接失败：'+e.message, 'err'); });
     }
@@ -339,6 +375,86 @@
       }).catch(function(e){ setFbResult('SDK 加载失败（ESM 可能被沙箱挡）：' + e.message, 'err'); });
     }
     $('fbTestBtn').addEventListener('click', testFirebase);
+
+    /* ---- Phase 2: NSDA round-phase state (synced) ---- */
+    var PHASES = [
+      {label:'Pro Constructive', who:'Pro-1', sec:240},
+      {label:'Con Constructive', who:'Con-1', sec:240},
+      {label:'First Crossfire', who:'Pro1+Con1', sec:180},
+      {label:'Pro Rebuttal', who:'Pro-2', sec:240},
+      {label:'Con Rebuttal', who:'Con-2', sec:240},
+      {label:'Second Crossfire', who:'Pro2+Con2', sec:180},
+      {label:'Pro Summary', who:'Pro-1', sec:180},
+      {label:'Con Summary', who:'Con-1', sec:180},
+      {label:'Grand Crossfire', who:'All 4', sec:180},
+      {label:'Pro Final Focus', who:'Pro-2', sec:120},
+      {label:'Con Final Focus', who:'Con-2', sec:120}
+    ];
+    var currentPhaseIdx = 0;
+    function fmtPhaseTime(sec){ var m=Math.floor(sec/60), x=sec%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
+    function renderPhase(){
+      var p = PHASES[currentPhaseIdx] || PHASES[0];
+      $('phaseLabel').textContent = (currentPhaseIdx+1) + '. ' + p.label + ' (' + p.who + ' · ' + fmtPhaseTime(p.sec) + ')';
+      var seq = $('phaseSeq'); seq.innerHTML = '';
+      PHASES.forEach(function(ph, i){
+        var d = document.createElement('div');
+        d.className = 'phase-item' + (i === currentPhaseIdx ? ' current' : '');
+        d.textContent = (i+1) + '. ' + ph.label;
+        seq.appendChild(d);
+      });
+    }
+    function phaseConnect(db, mod, path){
+      mod.onValue(mod.ref(db, path), function(snap){
+        var v = snap.val();
+        if (v && typeof v.idx === 'number') { currentPhaseIdx = v.idx; renderPhase(); }
+      });
+      renderPhase();
+    }
+    function setPhase(idx){
+      if (idx < 0) idx = 0;
+      if (idx >= PHASES.length) idx = PHASES.length - 1;
+      currentPhaseIdx = idx;
+      if (fbDb && fbMods){ fbMods[1].set(fbMods[1].ref(fbDb, 'pfdebate/rounds/'+currentRoundId+'/phase'), {idx:idx}); }
+      // also arm the debate timer for this phase's duration
+      debTimer.setPreset(PHASES[idx].sec);
+      renderPhase();
+    }
+    $('phaseNext').addEventListener('click', function(){ setPhase(currentPhaseIdx + 1); });
+    $('phasePrev').addEventListener('click', function(){ setPhase(currentPhaseIdx - 1); });
+    renderPhase();
+
+    /* ---- Phase 2: chat (synced) ---- */
+    function escapeHtml(s){ return String(s).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+    function chatConnect(db, mod, path){
+      mod.onValue(mod.ref(db, path), function(snap){
+        var v = snap.val() || {};
+        var list = $('chatList'); list.innerHTML = '';
+        var keys = Object.keys(v).sort();
+        if (!keys.length){ list.innerHTML = '<div class="hint" style="padding:4px">还没有消息。发第一条吧。</div>'; return; }
+        var myName = $('chatName').value.trim();
+        keys.forEach(function(k){
+          var m = v[k];
+          var d = document.createElement('div');
+          d.className = 'chat-msg' + (m.n === myName ? ' me' : '');
+          d.innerHTML = '<b>' + escapeHtml(m.n||'?') + ':</b> ' + escapeHtml(m.t||'');
+          list.appendChild(d);
+        });
+        list.scrollTop = list.scrollHeight;
+      });
+    }
+    function chatSend(){
+      var input = $('chatInput');
+      var text = input.value.trim();
+      if (!text || !fbDb || !fbMods) return;
+      var name = $('chatName').value.trim() || 'Debater';
+      input.value = '';
+      fbMods[1].push(fbMods[1].ref(fbDb, 'pfdebate/rounds/'+currentRoundId+'/chat'), {n:name, t:text, ts:Date.now()});
+    }
+    $('chatSendBtn').addEventListener('click', chatSend);
+    $('chatInput').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); chatSend(); } });
+    $('chatName').addEventListener('blur', function(){ google.script.run.setMyName($('chatName').value.trim()); });
+    google.script.run.withSuccessHandler(function(name){ if(name){ $('chatName').value = name; } }).getMyName();
+
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
     google.script.run.withSuccessHandler(function(url){
       if (url){ $('fbUrl').value = url; connectSync(url); }

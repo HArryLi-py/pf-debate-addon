@@ -50,6 +50,23 @@ function getFbUrl() { return PropertiesService.getUserProperties().getProperty(F
 function setFbUrl(url) { PropertiesService.getUserProperties().setProperty(FB_URL_KEY, url || ''); return 'saved'; }
 function getRoundId() { try { return 'doc-' + DocumentApp.getActiveDocument().getId().slice(-8); } catch (e) { return 'round-default'; } }
 
+/* ====================== PHASE 2: CHAT IDENTITY ============================
+   Each user gets a persistent display name (UserProperties) for the chat.
+   Generated on first use; editable from the sidebar. */
+var MY_NAME_KEY = 'pf_my_name';
+function getMyName() {
+  var p = PropertiesService.getUserProperties();
+  var n = p.getProperty(MY_NAME_KEY);
+  if (n) return n;
+  n = 'Debater-' + Math.random().toString(36).slice(2, 6);
+  p.setProperty(MY_NAME_KEY, n);
+  return n;
+}
+function setMyName(name) {
+  PropertiesService.getUserProperties().setProperty(MY_NAME_KEY, name || 'Debater');
+  return 'saved';
+}
+
 /* ====================== BUTTON 1: TITLE (选中→标题) ======================
    Whole paragraph → centered + 27pt + bold + underline. Handles Paragraph and
    ListItem; falls back to cursor's paragraph. Styles both the selection runs
