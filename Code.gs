@@ -69,11 +69,12 @@ function applyBlocks() {
     t.setFontSize(s, e, 24).setUnderline(s, e, true).setForegroundColor(s, e, '#666666');
   });
   paras.forEach(function (p) {
+    try { p.setHeading(DocumentApp.ParagraphHeading.HEADING2); } catch (e) {}
     try { p.setAlignment(DocumentApp.HorizontalAlignment.CENTER); } catch (e) {}
     try { var t = p.editAsText(); if (t) t.setFontSize(24).setUnderline(true).setForegroundColor('#666666'); } catch (e) {}
   });
   if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
-  return 'blocks ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 24pt + 灰字 + 下划线）';
+  return 'blocks ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 24pt + 灰字 + 下划线 + 进大纲 H2）';
 }
 
 /** Style each text run in the current selection via fn(textRun, start, end). */
