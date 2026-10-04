@@ -162,13 +162,21 @@ function generateCard(form) {
     }
   }
 
-  // 4. insert "card N" hyperlink at the cursor in the current tab → evidence tab
-  var tabId = '';
-  try { tabId = evTab.getId(); } catch (e) {}
-  var tabUrl = doc.getUrl() + (tabId ? '#tab=h.' + tabId : '');
-  _insertLinkAtCursor(doc, 'card ' + n, tabUrl);
+  // 4. bookmark the card title heading, then insert a "card N" hyperlink → that bookmark
+  //    (clicking jumps straight to the card's position in the evidence cards tab)
+  var linkUrl = doc.getUrl();
+  try {
+    var pos = head.createPosition(0);
+    var bm = evTab.asDocumentTab().addBookmark(pos);
+    var bmId = bm.getId();
+    if (bmId) linkUrl = doc.getUrl() + '#bookmark=id.' + bmId;
+  } catch (e) {
+    // fallback: link to the tab if bookmark creation isn't supported
+    try { var tabId = evTab.getId(); if (tabId) linkUrl = doc.getUrl() + '#tab=h.' + tabId; } catch (e2) {}
+  }
+  _insertLinkAtCursor(doc, 'card ' + n, linkUrl);
 
-  return 'card ' + n + ' ✓ 已生成：evidence cards 标签页加了卡片，当前 Doc 光标处插了超链接（点开跳到那个标签页）。' +
+  return 'card ' + n + ' ✓ 已生成：evidence cards 标签页加了卡片，当前 Doc 光标处插了超链接（点开跳到对应卡片位置）。' +
     (form.highlight && !highlightFound ? '（highlight 在 quote 里没找到，没加高亮。）' : '');
 }
 
