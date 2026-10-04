@@ -56,7 +56,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 
 <div class="claim-screen" id="claimScreen">
   <h2>选择你的席位</h2>
+  <div id="claimStatus" style="color:#94a8c6;font-size:12px;margin-bottom:10px;text-align:center;max-width:400px"></div>
   <div class="claim-grid" id="claimGrid"></div>
+  <div id="fbFallback" style="display:none;margin-top:16px;text-align:center">
+    <p style="color:#94a8c6;font-size:11px;margin-bottom:6px">没收到 Firebase URL。在侧边栏先测一下 Firebase 连接（自动存 URL），或在这里手动粘贴：</p>
+    <input id="fbManual" placeholder="https://你的项目.firebaseio.com" style="background:#15243c;border:1px solid rgba(149,173,214,.2);border-radius:4px;padding:6px 8px;color:#e9eef7;font-size:12px;width:300px;margin-bottom:6px">
+    <button onclick="var u=document.getElementById('fbManual').value.trim();if(u){fbUrl=u;document.getElementById('fbFallback').style.display='none';init()}" style="background:#2563eb;color:#fff;border:0;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer">连接</button>
+  </div>
 </div>
 
 <div class="header" id="roomHeader" style="display:none">
@@ -353,16 +359,23 @@ $('leaveBtn').addEventListener('click',function(){
 
 /* ===== Init ===== */
 async function init(){
-  if(!fbUrl){setStatus('缺少 Firebase URL（从侧边栏点链接进入）','err');return}
-  setStatus('连接 Firebase…');
-  try{await ensureFB(fbUrl)}catch(e){setStatus('Firebase 连接失败: '+e.message,'err');return}
-  setStatus('Firebase 已连 ✓');
+  var cs=$('claimStatus');
+  if(!fbUrl){
+    cs.textContent='缺少 Firebase URL — 需要先在侧边栏测一下 Firebase 连接（会自动存），或手动粘贴下方。';
+    cs.style.color='#e57b7b';
+    $('fbFallback').style.display='block';
+    return;
+  }
+  cs.textContent='连接 Firebase…';cs.style.color='#94a8c6';
+  try{await ensureFB(fbUrl)}catch(e){
+    cs.textContent='Firebase 连接失败: '+e.message;cs.style.color='#e57b7b';
+    $('fbFallback').style.display='block';return;
+  }
+  cs.textContent='Firebase 已连 ✓ 加载席位…';cs.style.color='#1b873f';
   // listen to seats for claim screen
   fbOn(fbRef('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaimGrid()});
   // listen to phase for initial display
   fbOn(fbRef('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v)currentPhase=v});
-  // onDisconnect cleanup for seats
-  var myTempUid=Math.floor(Math.random()*900)+100;
   renderClaimGrid();
 }
 init();
