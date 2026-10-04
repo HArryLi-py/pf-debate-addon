@@ -52,11 +52,12 @@ function applyTitle() {
     t.setFontSize(s, e, 27).setBold(s, e, true).setUnderline(s, e, true).setForegroundColor(s, e, '#000000');
   });
   paras.forEach(function (p) {
+    try { p.setHeading(DocumentApp.ParagraphHeading.HEADING1); } catch (e) {}
     try { p.setAlignment(DocumentApp.HorizontalAlignment.CENTER); } catch (e) {}
     try { var t = p.editAsText(); if (t) t.setFontSize(27).setBold(true).setUnderline(true).setForegroundColor('#000000'); } catch (e) {}
   });
   if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
-  return '标题 ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 27pt + 加粗 + 下划线 + 黑字）';
+  return '标题 ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 27pt + 加粗 + 下划线 + 黑字 + 进大纲）';
 }
 
 /* ====================== BUTTON 2: BLOCKS (选中→灰块) =====================
