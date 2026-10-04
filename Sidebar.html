@@ -367,13 +367,14 @@
     /* open the separate chat + round-phase window (WeChat-style) */
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
 
-    /* Phase 3: real <a target=_blank> link to the GitHub Pages audio room.
-       Most reliable for popups (browser always allows anchor target=_blank →
-       top-level tab → escapes the sandbox → mic works). Channel baked into
-       the URL from the round ID on load. */
+    /* Phase 3: real <a target=_blank> link to the GitHub Pages unified debate room.
+       Channel + Firebase URL baked into the URL from round ID + saved FB URL. */
     var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?channel=pfdebate-';
     google.script.run.withSuccessHandler(function(rid){
-      $('audioLink').href = AUDIO_PAGE + rid;
+      google.script.run.withSuccessHandler(function(fbUrl){
+        var url = AUDIO_PAGE + rid + (fbUrl ? '&fbUrl=' + encodeURIComponent(fbUrl) : '');
+        $('audioLink').href = url;
+      }).getFbUrl();
     }).withFailureHandler(function(e){ setStatus('语音房链接生成失败：'+e.message, 'err'); }).getRoundId();
 
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
