@@ -111,28 +111,40 @@ function _targetParagraphs(doc) {
 }
 
 /* ================ BUTTON 3: GENERATE EVIDENCE CARD (生成卡片) ==============
-   Append the card to the BOTTOM of the current doc. No separate doc, no
-   hyperlink, no drive.file. Cards accumulate with a blank line between. */
+   Card goes into a tab named "evidence cards" (user creates it once — Apps
+   Script can't create tabs programmatically). A "card N" hyperlink is inserted
+   at the cursor in the current tab → links to that tab. Highlight in the quote
+   is rendered bigger (13pt) than the rest of the quote (9pt). */
+
+var EV_TAB_NAME = 'evidence cards';
+var CARD_COUNT_KEY = 'pf_card_count';
 
 function generateCard(form) {
   if (!form || !form.title || !form.citation || !form.quote) {
     throw new Error('标题、citation、quote 都要填。');
   }
-  var body = DocumentApp.getActiveDocument().getBody();
+  var doc = DocumentApp.getActiveDocument();
 
-  // blank line separator before each card
-  body.appendParagraph('');
+  // 1. find the "evidence cards" tab (user must create it once)
+  var evTab = _findEvidenceTab(doc);
+  if (!evTab) {
+    throw new Error('没找到名为 "' + EV_TAB_NAME + '" 的标签页。请在 Doc 左下角标签栏点 ＋ 新建一个标签页，名字填 "evidence cards"，然后再点生成。');
+  }
+  var evBody;
+  try { evBody = evTab.asDocumentTab().getBody(); } catch (e) { throw new Error('无法读取 evidence cards 标签页：' + e.message); }
 
-  // Title: 24pt bold underline + heading (heading for Outline structure; not centered)
-  var titlePara = body.appendParagraph(form.title);
-  titlePara.setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  titlePara.editAsText().setFontSize(24).setBold(true).setUnderline(true);
+  // 2. increment card counter
+  var props = PropertiesService.getUserProperties();
+  var n = parseInt(props.getProperty(CARD_COUNT_KEY) || '0', 10) + 1;
+  props.setProperty(CARD_COUNT_KEY, String(n));
 
-  // Citation: 12pt
-  body.appendParagraph(form.citation).editAsText().setFontSize(12);
-
-  // Quote: 9pt; bold+underline+yellow the highlighted excerpt (matched within the quote)
-  var quotePara = body.appendParagraph(form.quote);
+  // 3. append the card to the evidence tab
+  evBody.appendParagraph(''); // blank line separator
+  var head = evBody.appendParagraph('card ' + n + ': ' + form.title);
+  try { head.setHeading(DocumentApp.ParagraphHeading.HEADING2); } catch (e) {}
+  head.editAsText().setFontSize(24).setBold(true).setUnderline(true).setForegroundColor('#000000');
+  evBody.appendParagraph(form.citation).editAsText().setFontSize(12);
+  var quotePara = evBody.appendParagraph(form.quote);
   var qt = quotePara.editAsText();
   qt.setFontSize(9);
   var highlightFound = false;
@@ -140,12 +152,50 @@ function generateCard(form) {
     var idx = form.quote.indexOf(form.highlight);
     if (idx >= 0) {
       var end = idx + form.highlight.length; // exclusive
-      qt.setBold(idx, end - 1, true)
+      qt.setFontSize(idx, end - 1, 13)                       // highlight bigger than the 9pt quote
+        .setBold(idx, end - 1, true)
         .setUnderline(idx, end - 1, true)
         .setBackgroundColor(idx, end - 1, '#FFF3A0');
       highlightFound = true;
     }
   }
-  return 'Card 已追加到本文档底部。往下滚查看。' +
-    (form.highlight && !highlightFound ? '（highlight 文字在 quote 里没找到，没加高亮。）' : '');
+
+  // 4. insert "card N" hyperlink at the cursor in the current tab → evidence tab
+  var tabId = '';
+  try { tabId = evTab.getId(); } catch (e) {}
+  var tabUrl = doc.getUrl() + (tabId ? '#tab=h.' + tabId : '');
+  _insertLinkAtCursor(doc, 'card ' + n, tabUrl);
+
+  return 'card ' + n + ' ✓ 已生成：evidence cards 标签页加了卡片，当前 Doc 光标处插了超链接（点开跳到那个标签页）。' +
+    (form.highlight && !highlightFound ? '（highlight 在 quote 里没找到，没加高亮。）' : '');
+}
+
+/** Find a tab whose title matches EV_TAB_NAME (case-insensitive). */
+function _findEvidenceTab(doc) {
+  var tabs = doc.getTabs();
+  for (var i = 0; i < tabs.length; i++) {
+    var t = tabs[i];
+    var title = '';
+    try { title = t.getTitle() || ''; } catch (e) { try { title = t.asDocumentTab().getTitle() || ''; } catch (e2) {} }
+    if (title && title.toLowerCase() === EV_TAB_NAME) return t;
+  }
+  return null;
+}
+
+/** Insert `text` as a hyperlink (→ url) at the cursor; fall back to appending on the active tab. */
+function _insertLinkAtCursor(doc, text, url) {
+  var cursor = doc.getCursor();
+  if (cursor) {
+    try {
+      var el = cursor.getElement();
+      var start = cursor.getOffset();
+      cursor.insertText(text);
+      el.asText().setLinkUrl(start, start + text.length - 1, url);
+      return;
+    } catch (e) { /* fall through */ }
+  }
+  var body;
+  try { body = doc.getActiveTab().asDocumentTab().getBody(); } catch (e) { body = doc.getBody(); }
+  var p = body.appendParagraph(text);
+  p.editAsText().setLinkUrl(url);
 }
