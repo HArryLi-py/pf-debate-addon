@@ -91,6 +91,12 @@
     .presets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 10px}
     .presets button{padding:6px;font-size:12px}
 
+    /* phase 2 firebase connection test */
+    .fb-result{margin-top:6px;font-size:12px;line-height:1.45;padding:8px 10px;border-radius:8px;background:var(--bg-2);color:var(--muted);min-height:18px;border:1px solid transparent;white-space:pre-wrap}
+    .fb-result.ok{color:var(--ok);background:var(--ok-bg);border-color:rgba(22,163,74,.25)}
+    .fb-result.err{color:var(--err);background:var(--err-bg);border-color:rgba(220,38,38,.25)}
+    .fb-result.warn{color:#a35a00;background:#fef7e0;border-color:rgba(163,90,0,.25)}
+
     @media (prefers-reduced-motion: reduce){
       *{transition:none !important; animation:none !important}
       button:hover{transform:none}
@@ -143,6 +149,15 @@
   </div>
   <div class="presets" id="debPresets"></div>
   <div class="hint">本地计时（Phase 1，不同步）。Phase 2 用 Firebase 同步给所有辩手。</div>
+
+  <hr>
+
+  <h4>Phase 2 · Firebase 连接测试（多人同步前置）</h4>
+  <label>Firebase Realtime Database URL</label>
+  <input id="fbUrl" placeholder="https://<你的项目>.firebaseio.com">
+  <div class="row"><button class="primary" id="fbTestBtn">测试连接</button></div>
+  <div class="fb-result" id="fbResult">填入 databaseURL 后点测试。需要先在 Firebase 建个 Realtime Database 项目（见下方步骤）。</div>
+  <div class="hint">这是 Phase 2 多人同步的前置验证（集成了当初的 spike）。显示 "websocket ✓" 就能做跨辩手同步计时器/chat。</div>
 
   <script>
     var $ = function(id){ return document.getElementById(id); };
@@ -248,6 +263,52 @@
 
     prepTimer.render();
     debTimer.render();
+
+    /* ---- Phase 2: Firebase connection test (integrated spike) ---- */
+    var fbApp = null;
+    function setFbResult(msg, cls){ var r = $('fbResult'); r.textContent = msg; r.className = 'fb-result ' + (cls||''); }
+    function testFirebase(){
+      var dbUrl = $('fbUrl').value.trim();
+      if (!dbUrl){ setFbResult('先填 databaseURL', 'err'); return; }
+      setFbResult('加载 Firebase SDK (ESM)…', '');
+      // patch WebSocket once to detect transport (websocket vs long-polling)
+      if (!window._fbWsPatched){
+        var OrigWS = window.WebSocket;
+        window.WebSocket = function(url, protocols){
+          if (typeof url === 'string' && url.indexOf('firebaseio.com') >= 0){ window._fbWsSeen = true; }
+          return protocols !== undefined ? new OrigWS(url, protocols) : new OrigWS(url);
+        };
+        window.WebSocket.prototype = OrigWS.prototype;
+        window._fbWsPatched = true;
+      }
+      window._fbWsSeen = false;
+      Promise.all([
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
+      ]).then(function(mods){
+        var appMod = mods[0], dbMod = mods[1];
+        try { if (fbApp) appMod.deleteApp(fbApp); } catch (e) {}
+        fbApp = appMod.initializeApp({ databaseURL: dbUrl });
+        var db = dbMod.getDatabase(fbApp);
+        var ref = dbMod.ref(db, 'pfdebate/test');
+        var myId = 'u' + Math.random().toString(36).slice(2,8);
+        dbMod.onValue(ref, function(snap){
+          var v = snap.val();
+          if (v && v.id !== myId){
+            setFbResult('✓ 收到对方消息：' + JSON.stringify(v) + '\n传输：' + (window._fbWsSeen ? 'websocket ✓' : 'long-polling'), 'ok');
+          }
+        });
+        dbMod.set(ref, { id: myId, msg: 'hello from ' + myId, t: Date.now() }).then(function(){
+          var transport = window._fbWsSeen ? 'websocket ✓' : 'long-polling（WebSocket 没通）';
+          setFbResult('已写入测试值。传输：' + transport + '\n开两个侧边栏（两个账号）测跨用户：另一个写入 → 这边会显示收到。', window._fbWsSeen ? 'ok' : 'warn');
+        }).catch(function(e){
+          setFbResult('写入失败：' + e.message, 'err');
+        });
+      }).catch(function(e){
+        setFbResult('SDK 加载失败（ESM 可能被沙箱挡）：' + e.message, 'err');
+      });
+    }
+    $('fbTestBtn').addEventListener('click', testFirebase);
   </script>
 </body>
 </html>
