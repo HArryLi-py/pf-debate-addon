@@ -37,56 +37,51 @@ function showSidebar() {
 /* ====================== BUTTON 1: TITLE (选中→标题) ======================
    Whole paragraph → centered + 27pt + bold + underline. Pure direct formatting. */
 function applyTitle() {
-  return _formatSelection(
-    function (p) {
-      p.setAlignment(DocumentApp.Alignment.CENTER);
-      var t = p.editAsText();
-      if (t) t.setFontSize(27).setBold(true).setUnderline(true);
-    },
-    function (t, s, e) {
-      t.setFontSize(s, e, 27).setBold(s, e, true).setUnderline(s, e, true);
-    }
-  );
+  var targets = _targetParagraphs();
+  if (!targets.length) throw new Error('先在 Doc 里选中文字，或把光标点在要改的段里。');
+  targets.forEach(function (p) {
+    p.setAlignment(DocumentApp.Alignment.CENTER);
+    var t = p.editAsText();
+    if (t) t.setFontSize(27).setBold(true).setUnderline(true);
+  });
+  return '标题 ✓ ' + targets.length + ' 段：居中 + 27pt + 加粗 + 下划线';
 }
 
 /* ====================== BUTTON 2: BLOCKS (选中→灰块) =====================
    Whole paragraph → centered + 24pt + gray + underline. */
 function applyBlocks() {
-  return _formatSelection(
-    function (p) {
-      p.setAlignment(DocumentApp.Alignment.CENTER);
-      var t = p.editAsText();
-      if (t) t.setFontSize(24).setUnderline(true).setForegroundColor('#666666');
-    },
-    function (t, s, e) {
-      t.setFontSize(s, e, 24).setUnderline(s, e, true).setForegroundColor(s, e, '#666666');
-    }
-  );
+  var targets = _targetParagraphs();
+  if (!targets.length) throw new Error('先在 Doc 里选中文字，或把光标点在要改的段里。');
+  targets.forEach(function (p) {
+    p.setAlignment(DocumentApp.Alignment.CENTER);
+    var t = p.editAsText();
+    if (t) t.setFontSize(24).setUnderline(true).setForegroundColor('#666666');
+  });
+  return 'blocks ✓ ' + targets.length + ' 段：居中 + 24pt + 灰字 + 下划线';
 }
 
-/** Apply paraFn(paragraph) to each paragraph containing the selection;
- *  textFn(textRun, start, end) as a fallback for text in lists/tables. */
-function _formatSelection(paraFn, textFn) {
+/** Paragraphs containing the selection; falls back to the cursor's paragraph. */
+function _targetParagraphs() {
   var doc = DocumentApp.getActiveDocument();
+  var paras = [];
   var sel = doc.getSelection();
-  if (!sel) throw new Error('先在 Doc 里选中文字。');
-  var done = [];
-  sel.getRangeElements().forEach(function (re) {
-    var el = re.getElement();
-    var parent = el.getParent();
-    if (parent && parent.getType() === DocumentApp.ElementType.PARAGRAPH) {
-      var p = parent.asParagraph();
-      if (done.indexOf(p) !== -1) return;
-      done.push(p);
-      paraFn(p);
-    } else if (el.getType() === DocumentApp.ElementType.TEXT) {
-      var t = el.asText();
-      var s = re.isPartial() ? re.getStartOffset() : 0;
-      var e = re.isPartial() ? re.getEndOffsetInclusive() : t.getText().length - 1;
-      if (e >= s) textFn(t, s, e);
+  if (sel) {
+    sel.getRangeElements().forEach(function (re) {
+      var parent = re.getElement().getParent();
+      if (parent && parent.getType() === DocumentApp.ElementType.PARAGRAPH) {
+        var p = parent.asParagraph();
+        if (paras.indexOf(p) === -1) paras.push(p);
+      }
+    });
+  }
+  if (!paras.length) {
+    var cursor = doc.getCursor();
+    if (cursor) {
+      var parent = cursor.getElement().getParent();
+      if (parent && parent.getType() === DocumentApp.ElementType.PARAGRAPH) paras.push(parent.asParagraph());
     }
-  });
-  return done.length + ' paragraph(s).';
+  }
+  return paras;
 }
 
 /* ================ BUTTON 3: GENERATE EVIDENCE CARD (生成卡片) ==============
