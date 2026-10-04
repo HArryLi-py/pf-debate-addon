@@ -123,15 +123,24 @@
 
   <hr>
 
-  <h4>计时器 Timer</h4>
-  <div class="timer-display" id="tdisp">04:00</div>
+  <h4>Prep 计时</h4>
+  <div class="timer-display" id="prepDisp">03:00</div>
   <div class="row">
-    <button class="primary" id="startBtn">Start</button>
-    <button id="pauseBtn">Pause</button>
-    <button id="resetBtn">Reset</button>
+    <button class="primary" id="prepStart">Start</button>
+    <button id="prepPause">Pause</button>
+    <button id="prepReset">Reset</button>
   </div>
-  <div class="presets" id="presets"></div>
-  <div class="hint">本地计时（Phase 1，不同步）。Phase 2 会用 Firebase 同步给所有辩手。</div>
+  <div class="presets" id="prepPresets"></div>
+
+  <h4>辩论计时</h4>
+  <div class="timer-display" id="debDisp">04:00</div>
+  <div class="row">
+    <button class="primary" id="debStart">Start</button>
+    <button id="debPause">Pause</button>
+    <button id="debReset">Reset</button>
+  </div>
+  <div class="presets" id="debPresets"></div>
+  <div class="hint">本地计时（Phase 1，不同步）。Phase 2 用 Firebase 同步给所有辩手。</div>
 
   <script>
     var $ = function(id){ return document.getElementById(id); };
@@ -176,45 +185,59 @@
         .generateCard(form);
     });
 
-    /* ---- Timer (client-side countdown) ---- */
-    var total = 240, remaining = 240, tickId = null, running = false;
-    function fmt(s){ var m=Math.floor(s/60), x=s%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
-    function renderTime(){
-      var d=$('tdisp');
-      d.textContent=fmt(remaining);
-      d.className='timer-display'+(remaining===0?' done':(remaining<=30?' warn':''));
+    /* ---- Two timers: Prep + Debate (independent client-side countdowns) ---- */
+    function makeTimer(prefix, defaultSec, name){
+      var total=defaultSec, remaining=defaultSec, tickId=null, running=false;
+      var disp=$(prefix+'Disp');
+      function fmt(s){ var m=Math.floor(s/60), x=s%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
+      function render(){
+        disp.textContent=fmt(remaining);
+        disp.className='timer-display'+(remaining===0?' done':(remaining<=30?' warn':''));
+      }
+      function stop(){ running=false; if(tickId){ clearInterval(tickId); tickId=null; } }
+      function start(){
+        if(running||remaining<=0) return;
+        running=true;
+        tickId=setInterval(function(){
+          remaining--;
+          if(remaining<=0){ remaining=0; stop(); render(); setStatus(name+' ⏰ 时间到！','err'); return; }
+          render();
+        },1000);
+      }
+      function reset(){ stop(); remaining=total; render(); }
+      function setPreset(sec){ stop(); total=sec; remaining=sec; render(); }
+      $(prefix+'Start').addEventListener('click', start);
+      $(prefix+'Pause').addEventListener('click', stop);
+      $(prefix+'Reset').addEventListener('click', reset);
+      return { setPreset:setPreset, render:render };
     }
-    function startTimer(){
-      if(running||remaining<=0) return;
-      running=true;
-      tickId=setInterval(function(){
-        remaining--;
-        if(remaining<=0){ remaining=0; stopTimer(); renderTime(); setStatus('⏰ 时间到！','err'); return; }
-        renderTime();
-      },1000);
+    function addPresets(boxId, presets, timer){
+      var box=$(boxId);
+      presets.forEach(function(p){
+        var b=document.createElement('button');
+        b.textContent=p.label;
+        b.addEventListener('click', function(){ timer.setPreset(p.sec); });
+        box.appendChild(b);
+      });
     }
-    function stopTimer(){ running=false; if(tickId){ clearInterval(tickId); tickId=null; } }
-    function resetTimer(){ stopTimer(); remaining=total; renderTime(); }
-    function setPreset(sec){ stopTimer(); total=sec; remaining=sec; renderTime(); }
-    var PRESETS=[
+
+    var prepTimer = makeTimer('prep', 180, 'Prep');
+    addPresets('prepPresets', [
+      {label:'Prep 3:00', sec:180},
+      {label:'Prep 2:00', sec:120}
+    ], prepTimer);
+
+    var debTimer = makeTimer('deb', 240, '辩论');
+    addPresets('debPresets', [
       {label:'Constructive 4:00', sec:240},
       {label:'Rebuttal 4:00', sec:240},
       {label:'Crossfire 3:00', sec:180},
       {label:'Summary 3:00', sec:180},
-      {label:'Final Focus 2:00', sec:120},
-      {label:'Prep 3:00', sec:180}
-    ];
-    var pBox=$('presets');
-    PRESETS.forEach(function(p){
-      var b=document.createElement('button');
-      b.textContent=p.label;
-      b.addEventListener('click',function(){ setPreset(p.sec); });
-      pBox.appendChild(b);
-    });
-    $('startBtn').addEventListener('click', startTimer);
-    $('pauseBtn').addEventListener('click', stopTimer);
-    $('resetBtn').addEventListener('click', resetTimer);
-    renderTime();
+      {label:'Final Focus 2:00', sec:120}
+    ], debTimer);
+
+    prepTimer.render();
+    debTimer.render();
   </script>
 </body>
 </html>
