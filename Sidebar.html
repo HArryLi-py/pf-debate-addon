@@ -168,6 +168,12 @@
 
   <hr>
 
+  <h4>Phase 3 · 语音通话</h4>
+  <div class="row"><button class="primary" id="audioBtn">📞 加入语音房间</button></div>
+  <div class="hint">新标签页打开 Jitsi 语音房（免费、不用账号）。同一个 Doc 的辩手进同一个房。视频默认关。</div>
+
+  <hr>
+
   <h4>Phase 2 · Firebase 连接测试（多人同步前置）</h4>
   <label>Firebase Realtime Database URL</label>
   <input id="fbUrl" placeholder="https://<你的项目>.firebaseio.com">
@@ -360,6 +366,12 @@
 
     /* open the separate chat + round-phase window (WeChat-style) */
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
+
+    /* Phase 3: open external Jitsi audio room in a new tab (escapes the sandbox) */
+    $('audioBtn').addEventListener('click', function(){
+      google.script.run.withSuccessHandler(function(url){ window.open(url, '_blank'); })
+        .withFailureHandler(function(e){ setStatus('语音房获取失败：'+e.message, 'err'); }).getAudioRoomUrl();
+    });
 
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
     google.script.run.withSuccessHandler(function(url){

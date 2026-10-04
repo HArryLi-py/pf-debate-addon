@@ -60,6 +60,21 @@ function getFbUrl() { return PropertiesService.getUserProperties().getProperty(F
 function setFbUrl(url) { PropertiesService.getUserProperties().setProperty(FB_URL_KEY, url || ''); return 'saved'; }
 function getRoundId() { try { return 'doc-' + DocumentApp.getActiveDocument().getId().slice(-8); } catch (e) { return 'round-default'; } }
 
+/* ====================== PHASE 3: AUDIO ROOM (Jitsi) ========================
+   Live audio can't run inside the sidebar sandbox (getUserMedia blocked).
+   Instead, a button opens an external Jitsi room in a new tab — the popup
+   escapes the sandbox (allow-popups-to-escape-sandbox) and can access the mic.
+   Room name is derived from the Doc ID so all debaters on the same Doc land in
+   the same room. meet.jit.si is free, no account, no self-hosting. */
+function getAudioRoomUrl() {
+  try {
+    var id = DocumentApp.getActiveDocument().getId();
+    return 'https://meet.jit.si/pfdebate-' + id + '#config.startWithVideoMuted=true';
+  } catch (e) {
+    return 'https://meet.jit.si/pfdebate-default#config.startWithVideoMuted=true';
+  }
+}
+
 /* ====================== PHASE 2: CHAT IDENTITY ============================
    Each user gets a persistent display name (UserProperties) for the chat.
    Generated on first use; editable from the sidebar. */
