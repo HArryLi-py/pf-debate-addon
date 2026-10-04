@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root{
+    --wx-bg:#EDEDED;            /* WeChat chat background */
+    --wx-me:#95EC69;            /* own bubble green */
+    --wx-other:#FFFFFF;         /* others' bubble white */
+    --wx-bar:#F7F7F7;          /* header/input bar */
+    --wx-line:#E0E0E0;
+    --wx-name:#999;
+    --wx-fg:#111;
+    --accent:#07C160;          /* WeChat green for actions */
+    --muted:#888;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:var(--font);font-size:13px;color:var(--wx-fg);background:var(--wx-bg);
+       display:flex;flex-direction:column;height:100vh;-webkit-font-smoothing:antialiased}
+
+  /* header: name + phase */
+  .header{background:var(--wx-bar);border-bottom:1px solid var(--wx-line);padding:6px 10px;flex-shrink:0}
+  .name-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .name-row label{font-size:11px;color:var(--muted);white-space:nowrap}
+  .name-input{flex:1;border:1px solid var(--wx-line);border-radius:4px;padding:4px 6px;font:inherit;font-size:12px}
+  .phase-row{display:flex;align-items:center;gap:6px}
+  .phase-label{flex:1;font-size:12px;font-weight:600;color:#222;background:#fff;border:1px solid var(--wx-line);border-radius:4px;padding:5px 8px}
+  .phase-btn{border:1px solid var(--wx-line);background:#fff;border-radius:4px;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer}
+  .phase-btn:active{background:#eee}
+  .phase-seq{font-size:10px;color:var(--muted);margin-top:4px;max-height:60px;overflow:auto}
+
+  /* chat area */
+  .chat-area{flex:1;overflow-y:auto;padding:10px 8px}
+  .msg{display:flex;margin:8px 0;align-items:flex-start}
+  .msg.me{flex-direction:row-reverse}
+  .avatar{width:34px;height:34px;border-radius:4px;background:#7F9EB5;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+  .msg.me .avatar{background:#07C160}
+  .bubble-wrap{display:flex;flex-direction:column;max-width:72%}
+  .msg.me .bubble-wrap{align-items:flex-end}
+  .name{font-size:11px;color:var(--wx-name);margin:0 6px 2px}
+  .bubble{padding:7px 10px;border-radius:4px;font-size:13px;line-height:1.45;word-wrap:break-word;white-space:pre-wrap;position:relative}
+  .msg.other .bubble{background:var(--wx-other);margin-left:8px}
+  .msg.me .bubble{background:var(--wx-me);margin-right:8px}
+  /* little tails */
+  .msg.other .bubble::before{content:"";position:absolute;left:-5px;top:10px;border:5px solid transparent;border-right-color:var(--wx-other);border-left:0}
+  .msg.me .bubble::after{content:"";position:absolute;right:-5px;top:10px;border:5px solid transparent;border-left-color:var(--wx-me);border-right:0}
+  .sys{font-size:11px;color:var(--muted);text-align:center;margin:6px 0}
+
+  /* input bar */
+  .input-bar{display:flex;gap:6px;padding:8px;background:var(--wx-bar);border-top:1px solid var(--wx-line);flex-shrink:0;align-items:center}
+  .input-bar input{flex:1;border:1px solid var(--wx-line);border-radius:4px;padding:7px 8px;font:inherit;font-size:13px}
+  .input-bar button{background:var(--accent);color:#fff;border:0;border-radius:4px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
+  .input-bar button:active{background:#06AD56}
+  .status-line{font-size:11px;color:var(--muted);padding:4px 10px;background:var(--wx-bar);text-align:center;flex-shrink:0}
+  .status-line.ok{color:var(--accent)} .status-line.err{color:#dc2626}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="name-row">
+      <label>名字</label>
+      <input id="chatName" class="name-input" placeholder="Debater-xxxx">
+    </div>
+    <div class="phase-row">
+      <div class="phase-label" id="phaseLabel">1. Pro Constructive</div>
+      <button class="phase-btn" id="phasePrev">←</button>
+      <button class="phase-btn" id="phaseNext">→</button>
+    </div>
+    <div class="phase-seq" id="phaseSeq"></div>
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="sys">连接 Firebase 后显示消息…</div>
+  </div>
+
+  <div class="input-bar">
+    <input id="chatInput" placeholder="发消息…">
+    <button id="chatSendBtn">发送</button>
+  </div>
+  <div class="status-line" id="statusLine">Ready.</div>
+
+  <script>
+    var $ = function(id){ return document.getElementById(id); };
+    function setStatus(msg, cls){ var s=$('statusLine'); s.textContent=msg; s.className='status-line '+(cls||''); }
+
+    /* NSDA PF round phases */
+    var PHASES = [
+      {label:'Pro Constructive', who:'Pro-1', sec:240},
+      {label:'Con Constructive', who:'Con-1', sec:240},
+      {label:'First Crossfire', who:'Pro1+Con1', sec:180},
+      {label:'Pro Rebuttal', who:'Pro-2', sec:240},
+      {label:'Con Rebuttal', who:'Con-2', sec:240},
+      {label:'Second Crossfire', who:'Pro2+Con2', sec:180},
+      {label:'Pro Summary', who:'Pro-1', sec:180},
+      {label:'Con Summary', who:'Con-1', sec:180},
+      {label:'Grand Crossfire', who:'All 4', sec:180},
+      {label:'Pro Final Focus', who:'Pro-2', sec:120},
+      {label:'Con Final Focus', who:'Con-2', sec:120}
+    ];
+    var currentPhaseIdx = 0, currentRoundId = 'round-default';
+    var fbApp=null, fbMods=null, fbDb=null;
+    function escapeHtml(s){ return String(s).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+    function fmtTime(sec){ var m=Math.floor(sec/60), x=sec%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
+
+    function renderPhase(){
+      var p = PHASES[currentPhaseIdx] || PHASES[0];
+      $('phaseLabel').textContent = (currentPhaseIdx+1) + '. ' + p.label + ' (' + p.who + ' · ' + fmtTime(p.sec) + ')';
+      var seq = $('phaseSeq'); seq.innerHTML='';
+      PHASES.forEach(function(ph, i){
+        var d = document.createElement('div');
+        d.textContent = (i+1) + '. ' + ph.label;
+        if (i === currentPhaseIdx){ d.style.fontWeight='600'; d.style.color='#07C160'; }
+        seq.appendChild(d);
+      });
+    }
+    function phaseConnect(db, mod, path){
+      mod.onValue(mod.ref(db, path), function(snap){
+        var v = snap.val();
+        if (v && typeof v.idx === 'number'){ currentPhaseIdx = v.idx; renderPhase(); }
+      });
+      renderPhase();
+    }
+    function setPhase(idx){
+      if (idx < 0) idx = 0;
+      if (idx >= PHASES.length) idx = PHASES.length - 1;
+      currentPhaseIdx = idx;
+      if (fbDb && fbMods){
+        // write the phase + arm the debate timer (main sidebar's debTimer subscribes to /deb)
+        fbMods[1].set(fbMods[1].ref(fbDb, 'pfdebate/rounds/'+currentRoundId+'/phase'), {idx:idx});
+        fbMods[1].set(fbMods[1].ref(fbDb, 'pfdebate/rounds/'+currentRoundId+'/deb'), {total:PHASES[idx].sec, remaining:PHASES[idx].sec, running:false});
+      }
+      renderPhase();
+    }
+    $('phaseNext').addEventListener('click', function(){ setPhase(currentPhaseIdx+1); });
+    $('phasePrev').addEventListener('click', function(){ setPhase(currentPhaseIdx-1); });
+
+    /* WeChat-style chat */
+    function chatConnect(db, mod, path){
+      mod.onValue(mod.ref(db, path), function(snap){
+        var v = snap.val() || {};
+        var area = $('chatArea'); area.innerHTML='';
+        var keys = Object.keys(v).sort();
+        if (!keys.length){ area.innerHTML='<div class="sys">还没有消息。发第一条吧。</div>'; return; }
+        var myName = $('chatName').value.trim();
+        keys.forEach(function(k){
+          var m = v[k]; if (!m) return;
+          var isMe = m.n === myName;
+          var row = document.createElement('div');
+          row.className = 'msg ' + (isMe ? 'me' : 'other');
+          var av = document.createElement('div'); av.className='avatar';
+          av.textContent = (m.n||'?').charAt(0).toUpperCase();
+          var wrap = document.createElement('div'); wrap.className='bubble-wrap';
+          if (!isMe){ var nm=document.createElement('div'); nm.className='name'; nm.textContent=m.n||'?'; wrap.appendChild(nm); }
+          var bub = document.createElement('div'); bub.className='bubble'; bub.textContent = m.t||'';
+          wrap.appendChild(bub);
+          row.appendChild(av); row.appendChild(wrap);
+          area.appendChild(row);
+        });
+        area.scrollTop = area.scrollHeight;
+      });
+    }
+    function chatSend(){
+      var input = $('chatInput');
+      var text = input.value.trim();
+      if (!text || !fbDb || !fbMods){ return; }
+      var name = $('chatName').value.trim() || 'Debater';
+      input.value = '';
+      fbMods[1].push(fbMods[1].ref(fbDb, 'pfdebate/rounds/'+currentRoundId+'/chat'), {n:name, t:text, ts:Date.now()});
+    }
+    $('chatSendBtn').addEventListener('click', chatSend);
+    $('chatInput').addEventListener('keydown', function(e){ if (e.key==='Enter'){ e.preventDefault(); chatSend(); } });
+    $('chatName').addEventListener('blur', function(){ google.script.run.setMyName($('chatName').value.trim()); });
+
+    /* load Firebase + connect */
+    function ensureFirebase(url){
+      if (fbDb && fbApp) { try { if (fbApp.options && fbApp.options.databaseURL === url) return Promise.resolve(fbDb); } catch(e){} }
+      return Promise.all([
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
+      ]).then(function(mods){
+        fbMods = mods;
+        try { if (fbApp) mods[0].deleteApp(fbApp); } catch (e) {}
+        fbApp = mods[0].initializeApp({ databaseURL: url });
+        fbDb = mods[1].getDatabase(fbApp);
+        return fbDb;
+      });
+    }
+    function connectAll(url, rid){
+      currentRoundId = rid;
+      ensureFirebase(url).then(function(db){
+        var mod = fbMods[1];
+        phaseConnect(db, mod, 'pfdebate/rounds/'+rid+'/phase');
+        chatConnect(db, mod, 'pfdebate/rounds/'+rid+'/chat');
+        setStatus('已连上（round: '+rid+'）', 'ok');
+      }).catch(function(e){ setStatus('连接失败: '+e.message, 'err'); });
+    }
+
+    renderPhase();
+    // on load: get name + Firebase URL + round ID → connect
+    google.script.run.withSuccessHandler(function(name){ if(name){ $('chatName').value = name; } }).getMyName();
+    google.script.run
+      .withSuccessHandler(function(url){
+        if (!url){ setStatus('先在主侧边栏测一下 Firebase 连接（会自动存 URL）', 'err'); return; }
+        google.script.run.withSuccessHandler(function(rid){ connectAll(url, rid); })
+          .withFailureHandler(function(e){ setStatus('round ID 失败: '+e.message, 'err'); }).getRoundId();
+      })
+      .withFailureHandler(function(e){ setStatus('getFbUrl 失败: '+e.message, 'err'); }).getFbUrl();
+  </script>
+</body>
+</html>

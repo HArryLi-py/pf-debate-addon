@@ -34,6 +34,16 @@ function showSidebar() {
   DocumentApp.getUi().showSidebar(html);
 }
 
+/* Open a separate modeless dialog for chat + round-phase (WeChat-style chat).
+   Stays open alongside the main sidebar — non-blocking. */
+function showChatDialog() {
+  var html = HtmlService.createHtmlOutputFromFile('Chat')
+    .setTitle('PF Debate · 聊天 + 赛程')
+    .setWidth(400).setHeight(620)
+    .setSandboxMode(HtmlService.SandboxMode.IFRAME);
+  DocumentApp.getUi().showModelessDialog(html, 'PF Debate · 聊天 + 赛程');
+}
+
 /* ====================== SELF-TEST (sidebar calls on load) ================= */
 function ping() {
   var d = DocumentApp.getActiveDocument();
