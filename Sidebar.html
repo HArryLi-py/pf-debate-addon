@@ -368,7 +368,10 @@
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
 
     /* Phase 3: open the custom Agora audio room (modeless dialog) */
-    $('audioBtn').addEventListener('click', function(){ google.script.run.showAudioDialog(); });
+    $('audioBtn').addEventListener('click', function(){
+      google.script.run.withFailureHandler(function(e){ setStatus('语音房打开失败：'+e.message+' （检查 Code.gs 有 showAudioDialog、且 Apps Script 里有 Audio.html 文件）', 'err'); })
+        .showAudioDialog();
+    });
 
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
     google.script.run.withSuccessHandler(function(url){
