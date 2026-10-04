@@ -164,11 +164,14 @@ function generateCard(form) {
 
   // 4. build a link that jumps to the exact card. Try methods in order; the
   //    return message reports which one worked so we can diagnose.
-  var linkUrl = doc.getUrl();
+  //    Use the /edit URL (not doc.getUrl()'s /open?id= — the open redirect
+  //    drops the #tab= fragment, which is why the link wasn't jumping).
+  var editUrl = 'https://docs.google.com/document/d/' + doc.getId() + '/edit';
+  var linkUrl = editUrl;
   var method = 'doc-only';
   try {
     head.setCustomId('card' + n);                                   // Method A: custom paragraph ID
-    linkUrl = doc.getUrl() + '#bookmark=card' + n;
+    linkUrl = editUrl + '#bookmark=card' + n;
     method = 'customId';
   } catch (eA) {
     try {
@@ -178,13 +181,13 @@ function generateCard(form) {
       if (bmId) {
         // bookmark IDs are typically like "id.xxx"; the URL fragment is #bookmark=<that>
         var frag = (bmId.indexOf('id.') === 0 || bmId.indexOf('h.') === 0) ? bmId : 'id.' + bmId;
-        linkUrl = doc.getUrl() + '#bookmark=' + frag;
+        linkUrl = editUrl + '#bookmark=' + frag;
         method = 'bookmark';
       }
     } catch (eB) {
       try {                                                         // Method C: tab-level fallback
         var tabId = evTab.getId();
-        if (tabId) { linkUrl = doc.getUrl() + '#tab=h.' + tabId; method = 'tab'; }
+        if (tabId) { linkUrl = editUrl + '#tab=h.' + tabId; method = 'tab'; }
       } catch (eC) {}
     }
   }
