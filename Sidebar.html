@@ -368,14 +368,21 @@
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
 
     /* Phase 3: real <a target=_blank> link to the GitHub Pages unified debate room.
-       Channel + Firebase URL baked into the URL from round ID + saved FB URL. */
+       Set a default href IMMEDIATELY so the link works even before round ID loads,
+       then update with real channel + fbUrl when both arrive (parallel, not nested). */
     var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?channel=pfdebate-';
-    google.script.run.withSuccessHandler(function(rid){
-      google.script.run.withSuccessHandler(function(fbUrl){
-        var url = AUDIO_PAGE + rid + (fbUrl ? '&fbUrl=' + encodeURIComponent(fbUrl) : '');
-        $('audioLink').href = url;
-      }).getFbUrl();
-    }).withFailureHandler(function(e){ setStatus('语音房链接生成失败：'+e.message, 'err'); }).getRoundId();
+    $('audioLink').href = AUDIO_PAGE + 'default'; // immediate fallback so click always opens
+    var _rid = null, _fbu = null;
+    function _updateAudioHref(){
+      if (_rid !== null && _fbu !== null){
+        $('audioLink').href = AUDIO_PAGE + _rid + (_fbu ? '&fbUrl=' + encodeURIComponent(_fbu) : '');
+      } else if (_rid !== null){
+        $('audioLink').href = AUDIO_PAGE + _rid;
+      }
+    }
+    google.script.run.withSuccessHandler(function(rid){ _rid = rid; _updateAudioHref(); })
+      .withFailureHandler(function(e){ setStatus('round ID 失败：'+e.message, 'err'); }).getRoundId();
+    google.script.run.withSuccessHandler(function(u){ _fbu = u; _updateAudioHref(); }).getFbUrl();
 
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
     google.script.run.withSuccessHandler(function(url){
