@@ -358,23 +358,26 @@ $('leaveBtn').addEventListener('click',function(){
 });
 
 /* ===== Init ===== */
+// Show buttons IMMEDIATELY (before async Firebase), so the page isn't empty.
+$('claimStatus').textContent = '加载中…';
+$('claimStatus').style.color = '#94a8c6';
+renderClaimGrid();
+
 async function init(){
   var cs=$('claimStatus');
   if(!fbUrl){
-    cs.textContent='缺少 Firebase URL — 需要先在侧边栏测一下 Firebase 连接（会自动存），或手动粘贴下方。';
-    cs.style.color='#e57b7b';
-    $('fbFallback').style.display='block';
+    cs.innerHTML = '需要 Firebase URL。在侧边栏先测一下 Firebase 连接（自动存 URL），或<a href="#" onclick="$(\'fbFallback\').style.display=\'block\';return false" style="color:#4f8ef7">手动粘贴</a>。';
+    cs.style.color = '#e57b7b';
+    $('fbFallback').style.display = 'none'; // hidden until user clicks the link
     return;
   }
-  cs.textContent='连接 Firebase…';cs.style.color='#94a8c6';
+  cs.textContent = '连接 Firebase…';cs.style.color = '#94a8c6';
   try{await ensureFB(fbUrl)}catch(e){
-    cs.textContent='Firebase 连接失败: '+e.message;cs.style.color='#e57b7b';
+    cs.textContent = 'Firebase 连接失败: '+e.message;cs.style.color='#e57b7b';
     $('fbFallback').style.display='block';return;
   }
-  cs.textContent='Firebase 已连 ✓ 加载席位…';cs.style.color='#1b873f';
-  // listen to seats for claim screen
+  cs.textContent = 'Firebase 已连 ✓ — 选一个席位加入';cs.style.color='#1b873f';
   fbOn(fbRef('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaimGrid()});
-  // listen to phase for initial display
   fbOn(fbRef('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v)currentPhase=v});
   renderClaimGrid();
 }
