@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<!-- Agora Web SDK v4. If this CDN URL 404s, the status will say "Agora SDK 没加载" — tell me and I switch the URL. -->
+<script src="https://download.agoraio.com/sdk/release/AgoraRTC_N-4.21.0.js"></script>
+<style>
+  :root{--bg:#fff;--fg:#162033;--muted:#5f6b80;--accent:#2563eb;--accent-2:#1d4ed8;--ok:#16a34a;--err:#dc2626;--r:10px;
+        --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;padding:14px;font-family:var(--font);font-size:13px;color:var(--fg);background:var(--bg);-webkit-font-smoothing:antialiased}
+  h4{font-size:11px;font-weight:600;color:var(--muted);margin:0 0 8px;letter-spacing:.01em;text-transform:uppercase}
+  .room-info{font-size:12px;color:var(--muted);background:#f5f8fc;border:1px solid #e1e6f0;border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.5}
+  .room-info b{color:var(--fg)}
+  .status{font-size:12px;padding:8px 10px;border-radius:8px;background:#f5f8fc;color:var(--muted);border:1px solid transparent;white-space:pre-wrap;min-height:18px;margin-bottom:10px;line-height:1.5}
+  .status.ok{color:var(--ok);background:#e7f6ec;border-color:rgba(22,163,74,.25)}
+  .status.err{color:var(--err);background:#fdecec;border-color:rgba(220,38,38,.25)}
+  .row{display:flex;gap:8px;margin:8px 0}
+  button{flex:1;font:inherit;font-size:13px;font-weight:500;color:var(--fg);background:#fff;border:1px solid #cdd6e6;border-radius:10px;padding:10px;cursor:pointer;transition:background 140ms,transform 140ms}
+  button:hover{background:#eaf0fa;border-color:var(--accent)}
+  button:active{transform:scale(.985)}
+  button.primary{color:#fff;background:var(--accent);border-color:transparent;font-weight:600}
+  button.primary:hover{background:var(--accent-2)}
+  button:disabled{opacity:.5;cursor:default}
+  .participants{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
+  .participants .you{color:var(--accent-2);font-weight:600}
+  .hint{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.45}
+</style>
+</head>
+<body>
+  <h4>语音通话 · Agora</h4>
+  <div class="room-info" id="roomInfo">频道: 连接中…</div>
+  <div class="status" id="status">初始化…</div>
+  <div class="row">
+    <button class="primary" id="muteBtn">🎤 静音</button>
+    <button id="leaveBtn">离开频道</button>
+  </div>
+  <div class="participants" id="participants"></div>
+  <div class="hint">这是最小化测试：验证 Agora SDK 能在沙箱加载 + App-ID 能加入频道 + 麦克风能拿。通了再加 token + 集成聊天/赛程/计时器到这个窗口。</div>
+
+  <script>
+    var $ = function(id){ return document.getElementById(id); };
+    function setStatus(msg, cls){ var s=$('status'); s.textContent=msg; s.className='status '+(cls||''); }
+    function setRoom(msg){ $('roomInfo').innerHTML=msg; }
+    function esc(s){ return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+    var client=null, localAudio=null, appId='', channel='', uid=0;
+    var remoteUsers = {};
+
+    function renderParticipants(){
+      var html='<div class="you">🎤 你 (uid '+uid+') — '+ (localAudio ? (localAudio.muted?'静音':'开麦') : '加入中') +'</div>';
+      Object.keys(remoteUsers).forEach(function(k){
+        html+='<div>🎧 对方 (uid '+esc(k)+')</div>';
+      });
+      $('participants').innerHTML=html;
+    }
+
+    function startAudio(){
+      if (typeof AgoraRTC === 'undefined'){
+        setStatus('Agora SDK 没加载（CDN 可能被墙/URL 变了）。告诉我，我换 SDK URL。', 'err');
+        return;
+      }
+      try {
+        client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'});
+      } catch(e){
+        setStatus('createClient 失败: '+e.message, 'err'); return;
+      }
+      client.on('user-published', function(user, mediaType){
+        setStatus('对方加入: uid '+user.uid+'，订阅中…');
+        client.subscribe(user, mediaType).then(function(){
+          if (mediaType==='audio' && user.audioTrack){ user.audioTrack.play(); }
+          remoteUsers[user.uid] = user; renderParticipants();
+          setStatus('✓ 对方 (uid '+user.uid+') 已订阅，能听到对方了。', 'ok');
+        }).catch(function(e){ setStatus('订阅对方失败: '+e.message, 'err'); });
+      });
+      client.on('user-unpublished', function(user){
+        delete remoteUsers[user.uid]; renderParticipants();
+        setStatus('对方离开: uid '+user.uid);
+      });
+      setRoom('频道: <b>'+esc(channel)+'</b> · App ID: <b>'+appId.slice(0,8)+'…</b> · uid: <b>'+uid+'</b>');
+      setStatus('加入频道中…（如果几秒后失败报 Authentication/token 错，说明项目要 token，我下一步补 token 签发）');
+      client.join(appId, channel, null, uid).then(function(joinedUid){
+        uid = joinedUid;
+        setStatus('已加入频道 ✓，请求麦克风…');
+        return AgoraRTC.createMicrophoneAudioTrack();
+      }).then(function(track){
+        localAudio = track;
+        client.publish(track);
+        setStatus('✓ 已加入 + 麦克风开。说话对方能听到；对方说话你也能听到。', 'ok');
+        renderParticipants();
+      }).catch(function(e){
+        var msg = e.message || String(e);
+        if (e && e.code) msg += ' (code '+e.code+')';
+        setStatus('加入/麦克风失败: '+msg+'\n常见:\n- "dynamic key/authentication" → 项目要 token，我补 token\n- "mic permission" → 浏览器麦克风权限没给，地址栏允许\n- "Agora SDK" 相关 → CDN/网络问题', 'err');
+      });
+    }
+
+    $('muteBtn').addEventListener('click', function(){
+      if (!localAudio) return;
+      var muted = !localAudio.muted;
+      localAudio.setMuted(muted);
+      $('muteBtn').textContent = muted ? '🔇 取消静音' : '🎤 静音';
+      renderParticipants();
+    });
+    $('leaveBtn').addEventListener('click', function(){
+      try { if (localAudio) localAudio.stop(); } catch(e){}
+      try { if (client) client.leave(); } catch(e){}
+      localAudio=null; client=null; remoteUsers={};
+      setStatus('已离开频道。');
+      renderParticipants();
+    });
+
+    // on load: get App ID + round ID → join
+    google.script.run.withSuccessHandler(function(aid){
+      appId = aid;
+      google.script.run.withSuccessHandler(function(rid){
+        channel = 'pfdebate-'+rid;
+        uid = Math.floor(Math.random()*100000);
+        startAudio();
+      }).withFailureHandler(function(e){ setStatus('getRoundId 失败: '+e.message, 'err'); }).getRoundId();
+    }).withFailureHandler(function(e){ setStatus('getAgoraAppId 失败: '+e.message, 'err'); }).getAgoraAppId();
+    renderParticipants();
+  </script>
+</body>
+</html>

@@ -170,7 +170,7 @@
 
   <h4>Phase 3 · 语音通话</h4>
   <div class="row"><button class="primary" id="audioBtn">📞 加入语音房间</button></div>
-  <div class="hint">新标签页打开 Jitsi 语音房（免费、不用账号）。同一个 Doc 的辩手进同一个房。视频默认关。</div>
+  <div class="hint">弹出独立窗口（声网 Agora，国内可用）：自定义辩论语音房，同一个 Doc 的辩手进同一个频道。</div>
 
   <hr>
 
@@ -367,18 +367,8 @@
     /* open the separate chat + round-phase window (WeChat-style) */
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
 
-    /* Phase 3: pre-fetch the Jitsi URL on load so the click opens it synchronously
-       (within the user gesture — an async window.open in google.script.run's
-       callback loses the gesture and gets popup-blocked, which is why the
-       button did nothing). */
-    var audioRoomUrl = null;
-    google.script.run.withSuccessHandler(function(url){ audioRoomUrl = url; })
-      .withFailureHandler(function(e){ setStatus('语音房 URL 获取失败：'+e.message, 'err'); }).getAudioRoomUrl();
-    $('audioBtn').addEventListener('click', function(){
-      if (!audioRoomUrl){ setStatus('语音房 URL 还没取到，稍等再点', 'err'); return; }
-      var w = window.open(audioRoomUrl, '_blank');
-      if (!w){ setStatus('弹窗被浏览器拦了。复制此 URL 手动开：' + audioRoomUrl, 'err'); }
-    });
+    /* Phase 3: open the custom Agora audio room (modeless dialog) */
+    $('audioBtn').addEventListener('click', function(){ google.script.run.showAudioDialog(); });
 
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
     google.script.run.withSuccessHandler(function(url){

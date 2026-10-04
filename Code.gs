@@ -44,6 +44,24 @@ function showChatDialog() {
   DocumentApp.getUi().showModelessDialog(html, 'PF Debate · 聊天 + 赛程');
 }
 
+/* Open the custom Agora audio room (modeless dialog). */
+function showAudioDialog() {
+  var html = HtmlService.createHtmlOutputFromFile('Audio')
+    .setTitle('PF Debate · 语音通话')
+    .setWidth(420).setHeight(560)
+    .setSandboxMode(HtmlService.SandboxMode.IFRAME);
+  DocumentApp.getUi().showModelessDialog(html, 'PF Debate · 语音通话');
+}
+
+/* ====================== PHASE 3: AGORA (声网) AUDIO ========================
+   Agora is China-friendly (UDP works via China edge nodes). The Agora Web SDK
+   runs in a separate modeless dialog (Audio.html) — outside the sidebar sandbox.
+   Channel name = round ID (same Doc → same channel). App-ID-only join first;
+   token minting (with the App Certificate) added next if the project requires it. */
+var AGORA_APP_ID = '6fb557c64dc04c578ea45bbc0f29cac0';
+var AGORA_APP_CERT = '8d95c2dad6214253b87e55592de978da';  // for token minting (next)
+function getAgoraAppId() { return AGORA_APP_ID; }
+
 /* ====================== SELF-TEST (sidebar calls on load) ================= */
 function ping() {
   var d = DocumentApp.getActiveDocument();
