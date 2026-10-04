@@ -367,10 +367,17 @@
     /* open the separate chat + round-phase window (WeChat-style) */
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
 
-    /* Phase 3: open external Jitsi audio room in a new tab (escapes the sandbox) */
+    /* Phase 3: pre-fetch the Jitsi URL on load so the click opens it synchronously
+       (within the user gesture — an async window.open in google.script.run's
+       callback loses the gesture and gets popup-blocked, which is why the
+       button did nothing). */
+    var audioRoomUrl = null;
+    google.script.run.withSuccessHandler(function(url){ audioRoomUrl = url; })
+      .withFailureHandler(function(e){ setStatus('语音房 URL 获取失败：'+e.message, 'err'); }).getAudioRoomUrl();
     $('audioBtn').addEventListener('click', function(){
-      google.script.run.withSuccessHandler(function(url){ window.open(url, '_blank'); })
-        .withFailureHandler(function(e){ setStatus('语音房获取失败：'+e.message, 'err'); }).getAudioRoomUrl();
+      if (!audioRoomUrl){ setStatus('语音房 URL 还没取到，稍等再点', 'err'); return; }
+      var w = window.open(audioRoomUrl, '_blank');
+      if (!w){ setStatus('弹窗被浏览器拦了。复制此 URL 手动开：' + audioRoomUrl, 'err'); }
     });
 
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
