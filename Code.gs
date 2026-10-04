@@ -153,10 +153,11 @@ function generateCard(form) {
     var idx = form.quote.indexOf(form.highlight);
     if (idx >= 0) {
       var end = idx + form.highlight.length; // exclusive
-      qt.setFontSize(idx, end - 1, 13)                       // highlight bigger than the 9pt quote
+      var hlColor = form.highlightColor || '#FFF3A0';
+      qt.setFontSize(idx, end - 1, 20)                       // highlight bigger than the 9pt quote
         .setBold(idx, end - 1, true)
         .setUnderline(idx, end - 1, true)
-        .setBackgroundColor(idx, end - 1, '#FFF3A0');
+        .setBackgroundColor(idx, end - 1, hlColor);
       highlightFound = true;
     }
   }
