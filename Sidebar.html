@@ -78,8 +78,21 @@
     #status.ok{color:var(--ok);background:var(--ok-bg);border-color:rgba(22,163,74,.25)}
     #status.err{color:var(--err);background:var(--err-bg);border-color:rgba(220,38,38,.25)}
 
+    /* timer */
+    .timer-display{
+      font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;text-align:center;
+      padding:10px 0;border:1px solid var(--line);border-radius:var(--r);background:var(--bg-2);
+      margin:6px 0 8px;letter-spacing:.02em;color:var(--fg);
+      transition:color 200ms ease, background 200ms ease, border-color 200ms ease;
+    }
+    .timer-display.warn{color:var(--err);border-color:rgba(220,38,38,.3)}
+    .timer-display.done{color:#fff;background:var(--err);border-color:transparent;animation:tpulse 1s ease-in-out infinite}
+    @keyframes tpulse{0%,100%{opacity:1}50%{opacity:.55}}
+    .presets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 10px}
+    .presets button{padding:6px;font-size:12px}
+
     @media (prefers-reduced-motion: reduce){
-      *{transition:none !important}
+      *{transition:none !important; animation:none !important}
       button:hover{transform:none}
     }
   </style>
@@ -107,6 +120,18 @@
   <div class="hint">卡片追加到本文档底部（不再单独建文档，不用额外授权）。往下滚查看。</div>
 
   <div id="status">Ready.</div>
+
+  <hr>
+
+  <h4>计时器 Timer</h4>
+  <div class="timer-display" id="tdisp">04:00</div>
+  <div class="row">
+    <button class="primary" id="startBtn">Start</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  <div class="presets" id="presets"></div>
+  <div class="hint">本地计时（Phase 1，不同步）。Phase 2 会用 Firebase 同步给所有辩手。</div>
 
   <script>
     var $ = function(id){ return document.getElementById(id); };
@@ -150,6 +175,46 @@
         })
         .generateCard(form);
     });
+
+    /* ---- Timer (client-side countdown) ---- */
+    var total = 240, remaining = 240, tickId = null, running = false;
+    function fmt(s){ var m=Math.floor(s/60), x=s%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
+    function renderTime(){
+      var d=$('tdisp');
+      d.textContent=fmt(remaining);
+      d.className='timer-display'+(remaining===0?' done':(remaining<=30?' warn':''));
+    }
+    function startTimer(){
+      if(running||remaining<=0) return;
+      running=true;
+      tickId=setInterval(function(){
+        remaining--;
+        if(remaining<=0){ remaining=0; stopTimer(); renderTime(); setStatus('⏰ 时间到！','err'); return; }
+        renderTime();
+      },1000);
+    }
+    function stopTimer(){ running=false; if(tickId){ clearInterval(tickId); tickId=null; } }
+    function resetTimer(){ stopTimer(); remaining=total; renderTime(); }
+    function setPreset(sec){ stopTimer(); total=sec; remaining=sec; renderTime(); }
+    var PRESETS=[
+      {label:'Constructive 4:00', sec:240},
+      {label:'Rebuttal 4:00', sec:240},
+      {label:'Crossfire 3:00', sec:180},
+      {label:'Summary 3:00', sec:180},
+      {label:'Final Focus 2:00', sec:120},
+      {label:'Prep 3:00', sec:180}
+    ];
+    var pBox=$('presets');
+    PRESETS.forEach(function(p){
+      var b=document.createElement('button');
+      b.textContent=p.label;
+      b.addEventListener('click',function(){ setPreset(p.sec); });
+      pBox.appendChild(b);
+    });
+    $('startBtn').addEventListener('click', startTimer);
+    $('pauseBtn').addEventListener('click', stopTimer);
+    $('resetBtn').addEventListener('click', resetTimer);
+    renderTime();
   </script>
 </body>
 </html>
