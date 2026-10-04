@@ -93,7 +93,7 @@
     <button id="titleBtn">标题 Title</button>
     <button id="blocksBtn">blocks</button>
   </div>
-  <div class="hint">标题 = 整段居中 27pt 加粗下划线 + 大纲；blocks = 灰字 24pt 下划线。</div>
+  <div class="hint">标题 = 整段居中 27pt 加粗下划线；blocks = 整段居中 灰字 24pt 下划线。</div>
 
   <hr>
 
@@ -107,7 +107,7 @@
   <label>Highlight（在 quote 里能找到的那段 → 加粗+下划线+黄底）</label>
   <input id="highlight" placeholder="把要强调的几个字/词粘这里">
   <div class="row"><button class="primary" id="genBtn">生成 card + 插链接</button></div>
-  <div class="hint">卡片追加到单独的 "PF Evidence Cards" 文档；同时在当前 Doc 光标处插超链接。第一次点会弹授权（drive.file），走一遍同意。</div>
+  <div class="hint">卡片追加到本文档底部（不再单独建文档，不用额外授权）。往下滚查看。</div>
 
   <div id="status">Ready.</div>
 
@@ -148,7 +148,7 @@
           setTimeout(function(){ genBtn.classList.remove('is-success'); }, 1200);
         })
         .withFailureHandler(function(err){
-          setStatus('Error: ' + err.message + '  （如果是权限/authorization 错，看上面 hint——第一次点要同意 drive.file 授权）', 'err');
+          setStatus('Error: ' + err.message, 'err');
           genBtn.disabled = false;
         })
         .generateCard(form);
