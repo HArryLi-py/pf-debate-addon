@@ -49,14 +49,14 @@ function applyTitle() {
   var doc = DocumentApp.getActiveDocument();
   var paras = _targetParagraphs(doc);
   var runs = _styleSelectionRuns(doc, function (t, s, e) {
-    t.setFontSize(s, e, 27).setBold(s, e, true).setUnderline(s, e, true);
+    t.setFontSize(s, e, 27).setBold(s, e, true).setUnderline(s, e, true).setForegroundColor(s, e, '#000000');
   });
   paras.forEach(function (p) {
-    try { p.setAlignment(DocumentApp.Alignment.CENTER); } catch (e) {}
-    try { var t = p.editAsText(); if (t) t.setFontSize(27).setBold(true).setUnderline(true); } catch (e) {}
+    try { p.setAlignment(DocumentApp.HorizontalAlignment.CENTER); } catch (e) {}
+    try { var t = p.editAsText(); if (t) t.setFontSize(27).setBold(true).setUnderline(true).setForegroundColor('#000000'); } catch (e) {}
   });
   if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
-  return '标题 ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 27pt + 加粗 + 下划线）';
+  return '标题 ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 27pt + 加粗 + 下划线 + 黑字）';
 }
 
 /* ====================== BUTTON 2: BLOCKS (选中→灰块) =====================
@@ -68,7 +68,7 @@ function applyBlocks() {
     t.setFontSize(s, e, 24).setUnderline(s, e, true).setForegroundColor(s, e, '#666666');
   });
   paras.forEach(function (p) {
-    try { p.setAlignment(DocumentApp.Alignment.CENTER); } catch (e) {}
+    try { p.setAlignment(DocumentApp.HorizontalAlignment.CENTER); } catch (e) {}
     try { var t = p.editAsText(); if (t) t.setFontSize(24).setUnderline(true).setForegroundColor('#666666'); } catch (e) {}
   });
   if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
