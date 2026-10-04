@@ -195,7 +195,7 @@ function renderClaim(){
     var back=document.createElement('button');back.className='claim-back';back.textContent='← 返回';back.onclick=function(){claimStep=1;renderClaim()};g.appendChild(back);
   } else if(claimStep==='con'){
     $('claimTitle').textContent='反方 — 选择辩手';
-    ['Con-1','Con-2'].forEach(function(r){var b=document.createElement('button');b.className='claim-btn con';b.innerHTML=r+'<small>'+(r==='Con-1'?'一辩':'二辩')+'</small>';b.disabled=!!seats[r];b.onclick=function(){claimSeat(r)};g.appendChild(r)});
+    ['Con-1','Con-2'].forEach(function(r){var b=document.createElement('button');b.className='claim-btn con';b.innerHTML=r+'<small>'+(r==='Con-1'?'一辩':'二辩')+'</small>';b.disabled=!!seats[r];b.onclick=function(){claimSeat(r)};g.appendChild(b)});
     var back=document.createElement('button');back.className='claim-back';back.textContent='← 返回';back.onclick=function(){claimStep=1;renderClaim()};g.appendChild(back);
   } else {claimSeat(claimStep==='judge'?'Judge':'Audience')}
 }
@@ -327,7 +327,7 @@ function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput'
 $('micBtn').onclick=function(){if(!mic)return;var m=!mic.muted;mic.setMuted(m);$('micBtn').textContent=m?'🎤 静音':'🎤 开麦'};
 $('camBtn').onclick=async function(){
   if(!cam){
-    try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=true}catch(e){$('stLine').textContent='摄像头失败: '+e.message;return}
+    try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=false}catch(e){$('stLine').textContent='摄像头失败: '+e.message;return}
   }
   camEnabled=!camEnabled;cam.setMuted(!camEnabled);
   $('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';
