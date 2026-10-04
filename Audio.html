@@ -210,12 +210,21 @@
       setStatus('已离开频道。'); renderParticipants();
     });
 
-    // on load: get round ID → channel + uid → start (token minted inside)
-    google.script.run.withSuccessHandler(function(rid){
-      channel = 'pfdebate-'+rid;
+    // on load: if PF_CONFIG is baked in (top-level popup via window.open+write),
+    // use it directly; else fall back to the bound script (modeless-dialog mode —
+    // but note: modeless dialog blocks mic, so the popup path is the real one).
+    function bootstrap(){
       uid = Math.floor(Math.random()*100000);
       startAudio();
-    }).withFailureHandler(function(e){ setStatus('getRoundId 失败: '+e.message, 'err'); }).getRoundId();
+    }
+    if (window.PF_CONFIG && PF_CONFIG.channel){
+      channel = PF_CONFIG.channel;
+      bootstrap();
+    } else {
+      google.script.run.withSuccessHandler(function(rid){
+        channel = 'pfdebate-'+rid; bootstrap();
+      }).withFailureHandler(function(e){ setStatus('getRoundId 失败: '+e.message, 'err'); }).getRoundId();
+    }
     renderParticipants();
   </script>
 </body>

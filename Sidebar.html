@@ -367,10 +367,19 @@
     /* open the separate chat + round-phase window (WeChat-style) */
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
 
-    /* Phase 3: open the custom Agora audio room (modeless dialog) */
+    /* Phase 3: open a top-level popup (escapes the sandbox → mic works),
+       then fetch the Audio.html with channel baked in and write it in. */
     $('audioBtn').addEventListener('click', function(){
-      google.script.run.withFailureHandler(function(e){ setStatus('语音房打开失败：'+e.message+' （检查 Code.gs 有 showAudioDialog、且 Apps Script 里有 Audio.html 文件）', 'err'); })
-        .showAudioDialog();
+      var w = window.open('', '_blank');
+      if (!w){ setStatus('弹窗被浏览器拦了。地址栏允许 docs.google.com 弹窗再点。', 'err'); return; }
+      try { w.document.write('<!DOCTYPE html><html><head><title>PF Debate 语音</title></head><body style="font-family:sans-serif;padding:20px">加载中…</body></html>'); } catch(e){}
+      google.script.run
+        .withSuccessHandler(function(html){
+          try { w.document.open(); w.document.write(html); w.document.close(); }
+          catch(e){ setStatus('写入弹窗失败：'+e.message, 'err'); }
+        })
+        .withFailureHandler(function(e){ setStatus('语音房生成失败：'+e.message, 'err'); })
+        .getAudioWindowHtml();
     });
 
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set

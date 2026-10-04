@@ -53,6 +53,17 @@ function showAudioDialog() {
   DocumentApp.getUi().showModelessDialog(html, 'PF Debate · 语音通话');
 }
 
+/* Return the Audio.html content with the channel baked in via a PF_CONFIG
+   script. The sidebar window.open()s a top-level popup and writes this HTML
+   into it — the popup escapes the sandbox (so getUserMedia / mic works,
+   unlike the modeless dialog which blocks mic). */
+function getAudioWindowHtml() {
+  var channel = 'pfdebate-' + getRoundId();
+  var cfg = '<script>window.PF_CONFIG={channel:' + JSON.stringify(channel) + '};</script>';
+  var html = HtmlService.createHtmlOutputFromFile('Audio').getContent();
+  return cfg + html;
+}
+
 /* ====================== PHASE 3: AGORA (声网) AUDIO ========================
    Agora is China-friendly (UDP works via China edge nodes). The Agora Web SDK
    runs in a separate modeless dialog (Audio.html) — outside the sidebar sandbox.
