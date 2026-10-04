@@ -41,6 +41,15 @@ function ping() {
   return 'pong ✓ doc="' + d.getName() + '" selection=' + (sel ? 'yes' : 'none') + ' cursor=' + (d.getCursor() ? 'yes' : 'none');
 }
 
+/* ====================== PHASE 2: FIREBASE CONFIG / ROUND ID ===============
+   The Firebase databaseURL is stored per-user (UserProperties) so debaters
+   don't re-enter it each session. The round ID is derived from the Doc ID, so
+   everyone on the same Doc shares the same sync node. */
+var FB_URL_KEY = 'pf_fb_url';
+function getFbUrl() { return PropertiesService.getUserProperties().getProperty(FB_URL_KEY) || ''; }
+function setFbUrl(url) { PropertiesService.getUserProperties().setProperty(FB_URL_KEY, url || ''); return 'saved'; }
+function getRoundId() { try { return 'doc-' + DocumentApp.getActiveDocument().getId().slice(-8); } catch (e) { return 'round-default'; } }
+
 /* ====================== BUTTON 1: TITLE (选中→标题) ======================
    Whole paragraph → centered + 27pt + bold + underline. Handles Paragraph and
    ListItem; falls back to cursor's paragraph. Styles both the selection runs

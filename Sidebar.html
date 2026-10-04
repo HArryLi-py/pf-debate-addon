@@ -210,31 +210,44 @@
         .generateCard(form);
     });
 
-    /* ---- Two timers: Prep + Debate (independent client-side countdowns) ---- */
+    /* ---- Two timers: Prep + Debate (local + optional Firebase sync) ---- */
     function makeTimer(prefix, defaultSec, name){
       var total=defaultSec, remaining=defaultSec, tickId=null, running=false;
       var disp=$(prefix+'Disp');
+      var sync = { connected:false, db:null, ref:null, mod:null };
       function fmt(s){ var m=Math.floor(s/60), x=s%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
       function render(){
         disp.textContent=fmt(remaining);
         disp.className='timer-display'+(remaining===0?' done':(remaining<=30?' warn':''));
       }
+      function writeSync(){ if(sync.connected && sync.ref){ sync.mod.set(sync.ref, {total:total, remaining:remaining, running:running}); } }
       function stop(){ running=false; if(tickId){ clearInterval(tickId); tickId=null; } }
       function start(){
         if(running||remaining<=0) return;
-        running=true;
+        running=true; writeSync();
         tickId=setInterval(function(){
           remaining--;
-          if(remaining<=0){ remaining=0; stop(); render(); setStatus(name+' ⏰ 时间到！','err'); return; }
-          render();
+          if(remaining<=0){ remaining=0; stop(); render(); writeSync(); setStatus(name+' ⏰ 时间到！','err'); return; }
+          render(); writeSync();
         },1000);
       }
-      function reset(){ stop(); remaining=total; render(); }
-      function setPreset(sec){ stop(); total=sec; remaining=sec; render(); }
+      function reset(){ stop(); remaining=total; render(); writeSync(); }
+      function setPreset(sec){ stop(); total=sec; remaining=sec; render(); writeSync(); }
+      function connect(db, mod, path){
+        sync.db=db; sync.mod=mod; sync.ref=mod.ref(db, path); sync.connected=true;
+        mod.onValue(sync.ref, function(snap){
+          var v = snap.val();
+          if (!v) return;
+          if (v.total != null) total = v.total;
+          if (v.remaining != null) remaining = v.remaining;
+          if (v.running === false && running) stop();
+          render();
+        });
+      }
       $(prefix+'Start').addEventListener('click', start);
-      $(prefix+'Pause').addEventListener('click', stop);
+      $(prefix+'Pause').addEventListener('click', function(){ stop(); render(); writeSync(); });
       $(prefix+'Reset').addEventListener('click', reset);
-      return { setPreset:setPreset, render:render };
+      return { setPreset:setPreset, render:render, connect:connect };
     }
     function addPresets(boxId, presets, timer){
       var box=$(boxId);
@@ -264,51 +277,72 @@
     prepTimer.render();
     debTimer.render();
 
-    /* ---- Phase 2: Firebase connection test (integrated spike) ---- */
-    var fbApp = null;
+    /* ---- Phase 2: Firebase (connection test + synced timers) ---- */
+    var fbApp = null, fbMods = null, fbDb = null;
     function setFbResult(msg, cls){ var r = $('fbResult'); r.textContent = msg; r.className = 'fb-result ' + (cls||''); }
-    function testFirebase(){
-      var dbUrl = $('fbUrl').value.trim();
-      if (!dbUrl){ setFbResult('先填 databaseURL', 'err'); return; }
-      setFbResult('加载 Firebase SDK (ESM)…', '');
+    function ensureFirebase(url){
+      if (fbDb && fbApp) { try { if (fbApp.options && fbApp.options.databaseURL === url) return Promise.resolve(fbDb); } catch(e){} }
       // patch WebSocket once to detect transport (websocket vs long-polling)
       if (!window._fbWsPatched){
         var OrigWS = window.WebSocket;
-        window.WebSocket = function(url, protocols){
-          if (typeof url === 'string' && url.indexOf('firebaseio.com') >= 0){ window._fbWsSeen = true; }
-          return protocols !== undefined ? new OrigWS(url, protocols) : new OrigWS(url);
+        window.WebSocket = function(u, protocols){
+          if (typeof u === 'string' && u.indexOf('firebaseio.com') >= 0){ window._fbWsSeen = true; }
+          return protocols !== undefined ? new OrigWS(u, protocols) : new OrigWS(u);
         };
         window.WebSocket.prototype = OrigWS.prototype;
         window._fbWsPatched = true;
       }
       window._fbWsSeen = false;
-      Promise.all([
+      return Promise.all([
         import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
         import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
       ]).then(function(mods){
-        var appMod = mods[0], dbMod = mods[1];
-        try { if (fbApp) appMod.deleteApp(fbApp); } catch (e) {}
-        fbApp = appMod.initializeApp({ databaseURL: dbUrl });
-        var db = dbMod.getDatabase(fbApp);
-        var ref = dbMod.ref(db, 'pfdebate/test');
+        fbMods = mods;
+        try { if (fbApp) mods[0].deleteApp(fbApp); } catch (e) {}
+        fbApp = mods[0].initializeApp({ databaseURL: url });
+        fbDb = mods[1].getDatabase(fbApp);
+        return fbDb;
+      });
+    }
+    function connectSync(url){
+      ensureFirebase(url).then(function(db){
+        var mod = fbMods[1];
+        google.script.run.withSuccessHandler(function(rid){
+          prepTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/prep');
+          debTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/deb');
+          setFbResult('✓ 计时器同步已启用（round: '+rid+'）。A 按 Start，其他辩手侧边栏同时倒数。', 'ok');
+        }).withFailureHandler(function(e){ setFbResult('round ID 获取失败：'+e.message, 'err'); }).getRoundId();
+      }).catch(function(e){ setFbResult('同步连接失败：'+e.message, 'err'); });
+    }
+    function testFirebase(){
+      var dbUrl = $('fbUrl').value.trim();
+      if (!dbUrl){ setFbResult('先填 databaseURL', 'err'); return; }
+      setFbResult('加载 Firebase SDK (ESM)…', '');
+      ensureFirebase(dbUrl).then(function(db){
+        var mod = fbMods[1];
+        var ref = mod.ref(db, 'pfdebate/test');
         var myId = 'u' + Math.random().toString(36).slice(2,8);
-        dbMod.onValue(ref, function(snap){
+        mod.onValue(ref, function(snap){
           var v = snap.val();
           if (v && v.id !== myId){
             setFbResult('✓ 收到对方消息：' + JSON.stringify(v) + '\n传输：' + (window._fbWsSeen ? 'websocket ✓' : 'long-polling'), 'ok');
           }
         });
-        dbMod.set(ref, { id: myId, msg: 'hello from ' + myId, t: Date.now() }).then(function(){
+        mod.set(ref, { id: myId, msg: 'hello from ' + myId, t: Date.now() }).then(function(){
           var transport = window._fbWsSeen ? 'websocket ✓' : 'long-polling（WebSocket 没通）';
-          setFbResult('已写入测试值。传输：' + transport + '\n开两个侧边栏（两个账号）测跨用户：另一个写入 → 这边会显示收到。', window._fbWsSeen ? 'ok' : 'warn');
-        }).catch(function(e){
-          setFbResult('写入失败：' + e.message, 'err');
-        });
-      }).catch(function(e){
-        setFbResult('SDK 加载失败（ESM 可能被沙箱挡）：' + e.message, 'err');
-      });
+          setFbResult('已写入测试值。传输：' + transport, window._fbWsSeen ? 'ok' : 'warn');
+          if (window._fbWsSeen){
+            // spike passed → save URL + enable synced timers automatically
+            google.script.run.withSuccessHandler(function(){ connectSync(dbUrl); }).setFbUrl(dbUrl);
+          }
+        }).catch(function(e){ setFbResult('写入失败：' + e.message, 'err'); });
+      }).catch(function(e){ setFbResult('SDK 加载失败（ESM 可能被沙箱挡）：' + e.message, 'err'); });
     }
     $('fbTestBtn').addEventListener('click', testFirebase);
+    // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
+    google.script.run.withSuccessHandler(function(url){
+      if (url){ $('fbUrl').value = url; connectSync(url); }
+    }).getFbUrl();
   </script>
 </body>
 </html>
