@@ -34,53 +34,79 @@ function showSidebar() {
   DocumentApp.getUi().showSidebar(html);
 }
 
+/* ====================== SELF-TEST (sidebar calls on load) ================= */
+function ping() {
+  var d = DocumentApp.getActiveDocument();
+  var sel = d.getSelection();
+  return 'pong ✓ doc="' + d.getName() + '" selection=' + (sel ? 'yes' : 'none') + ' cursor=' + (d.getCursor() ? 'yes' : 'none');
+}
+
 /* ====================== BUTTON 1: TITLE (选中→标题) ======================
-   Whole paragraph → centered + 27pt + bold + underline. Pure direct formatting. */
+   Whole paragraph → centered + 27pt + bold + underline. Handles Paragraph and
+   ListItem; falls back to cursor's paragraph. Styles both the selection runs
+   and the whole paragraph so it works even on partial selections. */
 function applyTitle() {
-  var targets = _targetParagraphs();
-  if (!targets.length) throw new Error('先在 Doc 里选中文字，或把光标点在要改的段里。');
-  targets.forEach(function (p) {
-    p.setAlignment(DocumentApp.Alignment.CENTER);
-    var t = p.editAsText();
-    if (t) t.setFontSize(27).setBold(true).setUnderline(true);
+  var doc = DocumentApp.getActiveDocument();
+  var paras = _targetParagraphs(doc);
+  var runs = _styleSelectionRuns(doc, function (t, s, e) {
+    t.setFontSize(s, e, 27).setBold(s, e, true).setUnderline(s, e, true);
   });
-  return '标题 ✓ ' + targets.length + ' 段：居中 + 27pt + 加粗 + 下划线';
+  paras.forEach(function (p) {
+    try { p.setAlignment(DocumentApp.Alignment.CENTER); } catch (e) {}
+    try { var t = p.editAsText(); if (t) t.setFontSize(27).setBold(true).setUnderline(true); } catch (e) {}
+  });
+  if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
+  return '标题 ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 27pt + 加粗 + 下划线）';
 }
 
 /* ====================== BUTTON 2: BLOCKS (选中→灰块) =====================
    Whole paragraph → centered + 24pt + gray + underline. */
 function applyBlocks() {
-  var targets = _targetParagraphs();
-  if (!targets.length) throw new Error('先在 Doc 里选中文字，或把光标点在要改的段里。');
-  targets.forEach(function (p) {
-    p.setAlignment(DocumentApp.Alignment.CENTER);
-    var t = p.editAsText();
-    if (t) t.setFontSize(24).setUnderline(true).setForegroundColor('#666666');
+  var doc = DocumentApp.getActiveDocument();
+  var paras = _targetParagraphs(doc);
+  var runs = _styleSelectionRuns(doc, function (t, s, e) {
+    t.setFontSize(s, e, 24).setUnderline(s, e, true).setForegroundColor(s, e, '#666666');
   });
-  return 'blocks ✓ ' + targets.length + ' 段：居中 + 24pt + 灰字 + 下划线';
+  paras.forEach(function (p) {
+    try { p.setAlignment(DocumentApp.Alignment.CENTER); } catch (e) {}
+    try { var t = p.editAsText(); if (t) t.setFontSize(24).setUnderline(true).setForegroundColor('#666666'); } catch (e) {}
+  });
+  if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
+  return 'blocks ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 24pt + 灰字 + 下划线）';
 }
 
-/** Paragraphs containing the selection; falls back to the cursor's paragraph. */
-function _targetParagraphs() {
-  var doc = DocumentApp.getActiveDocument();
-  var paras = [];
+/** Style each text run in the current selection via fn(textRun, start, end). */
+function _styleSelectionRuns(doc, fn) {
   var sel = doc.getSelection();
-  if (sel) {
-    sel.getRangeElements().forEach(function (re) {
-      var parent = re.getElement().getParent();
-      if (parent && parent.getType() === DocumentApp.ElementType.PARAGRAPH) {
-        var p = parent.asParagraph();
-        if (paras.indexOf(p) === -1) paras.push(p);
-      }
-    });
-  }
-  if (!paras.length) {
-    var cursor = doc.getCursor();
-    if (cursor) {
-      var parent = cursor.getElement().getParent();
-      if (parent && parent.getType() === DocumentApp.ElementType.PARAGRAPH) paras.push(parent.asParagraph());
+  if (!sel) return 0;
+  var n = 0;
+  sel.getRangeElements().forEach(function (re) {
+    var el = re.getElement();
+    if (el.getType() !== DocumentApp.ElementType.TEXT) return;
+    var t = el.asText();
+    var s = re.isPartial() ? re.getStartOffset() : 0;
+    var e = re.isPartial() ? re.getEndOffsetInclusive() : t.getText().length - 1;
+    if (e >= s) { fn(t, s, e); n++; }
+  });
+  return n;
+}
+
+/** Paragraph/List-Item containers of the selection; falls back to the cursor's. */
+function _targetParagraphs(doc) {
+  var paras = [];
+  var seen = [];
+  var add = function (p) { if (p && seen.indexOf(p) === -1) { seen.push(p); paras.push(p); } };
+  var walk = function (el) {
+    var cur = el;
+    while (cur) {
+      var tp = cur.getType();
+      if (tp === DocumentApp.ElementType.PARAGRAPH || tp === DocumentApp.ElementType.LIST_ITEM) { add(cur); return; }
+      cur = cur.getParent ? cur.getParent() : null;
     }
-  }
+  };
+  var sel = doc.getSelection();
+  if (sel) sel.getRangeElements().forEach(function (re) { walk(re.getElement()); });
+  if (!paras.length) { var c = doc.getCursor(); if (c) walk(c.getElement()); }
   return paras;
 }
 

@@ -147,7 +147,14 @@
     var status = $('status');
     function setStatus(msg, cls){ status.textContent = msg; status.className = cls || ''; }
 
+    /* self-test on load: proves sidebar↔server plumbing + shows selection state */
+    setStatus('连接中…');
+    google.script.run.withSuccessHandler(function(res){ setStatus(res, 'ok'); })
+      .withFailureHandler(function(err){ setStatus('连接失败: ' + err.message, 'err'); })
+      .ping();
+
     function call(fnName, args, onOk){
+      setStatus(fnName + ' 调用中…');
       var runner = google.script.run.withSuccessHandler(function(res){
         setStatus(onOk ? onOk(res) : (res || 'Done.'), 'ok');
       }).withFailureHandler(function(err){ setStatus('Error: ' + err.message, 'err'); });
@@ -155,8 +162,8 @@
       else runner[fnName]();
     }
 
-    $('titleBtn').addEventListener('click', function(){ call('applyTitle', null, function(r){ return '标题 ✓ ' + r; }); });
-    $('blocksBtn').addEventListener('click', function(){ call('applyBlocks', null, function(r){ return 'blocks ✓ ' + r; }); });
+    $('titleBtn').addEventListener('click', function(){ call('applyTitle'); });
+    $('blocksBtn').addEventListener('click', function(){ call('applyBlocks'); });
 
     var genBtn = $('genBtn');
     genBtn.addEventListener('click', function(){
