@@ -210,20 +210,14 @@
       setStatus('已离开频道。'); renderParticipants();
     });
 
-    // on load: if PF_CONFIG is baked in (top-level popup via window.open+write),
-    // use it directly; else fall back to the bound script (modeless-dialog mode —
-    // but note: modeless dialog blocks mic, so the popup path is the real one).
-    function bootstrap(){
-      uid = Math.floor(Math.random()*100000);
-      startAudio();
-    }
-    if (window.PF_CONFIG && PF_CONFIG.channel){
-      channel = PF_CONFIG.channel;
-      bootstrap();
-    } else {
-      google.script.run.withSuccessHandler(function(rid){
-        channel = 'pfdebate-'+rid; bootstrap();
-      }).withFailureHandler(function(e){ setStatus('getRoundId 失败: '+e.message, 'err'); }).getRoundId();
+    // on load: PF_CONFIG (popup+write) → URL ?channel= (GitHub Pages top-level) → google.script.run (modeless fallback)
+    function bootstrap(){ uid = Math.floor(Math.random()*100000); startAudio(); }
+    var urlChannel = new URLSearchParams(location.search).get('channel');
+    if (window.PF_CONFIG && PF_CONFIG.channel){ channel = PF_CONFIG.channel; bootstrap(); }
+    else if (urlChannel){ channel = urlChannel; bootstrap(); }
+    else {
+      google.script.run.withSuccessHandler(function(rid){ channel='pfdebate-'+rid; bootstrap(); })
+        .withFailureHandler(function(e){ setStatus('getRoundId 失败: '+e.message, 'err'); }).getRoundId();
     }
     renderParticipants();
   </script>

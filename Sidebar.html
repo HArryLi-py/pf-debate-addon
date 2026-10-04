@@ -169,8 +169,8 @@
   <hr>
 
   <h4>Phase 3 · 语音通话</h4>
-  <div class="row"><button class="primary" id="audioBtn">📞 加入语音房间</button></div>
-  <div class="hint">弹出独立窗口（声网 Agora，国内可用）：自定义辩论语音房，同一个 Doc 的辩手进同一个频道。</div>
+  <div class="row"><a id="audioLink" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;color:#fff;background:#2563eb;border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px;transition:background 140ms">📞 加入语音房间</a></div>
+  <div class="hint">新标签页打开声网 Agora 语音房（顶层窗口，麦克风能用）。同一个 Doc 的辩手进同一个频道。</div>
 
   <hr>
 
@@ -367,20 +367,14 @@
     /* open the separate chat + round-phase window (WeChat-style) */
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
 
-    /* Phase 3: open a top-level popup (escapes the sandbox → mic works),
-       then fetch the Audio.html with channel baked in and write it in. */
-    $('audioBtn').addEventListener('click', function(){
-      var w = window.open('', '_blank');
-      if (!w){ setStatus('弹窗被浏览器拦了。地址栏允许 docs.google.com 弹窗再点。', 'err'); return; }
-      try { w.document.write('<!DOCTYPE html><html><head><title>PF Debate 语音</title></head><body style="font-family:sans-serif;padding:20px">加载中…</body></html>'); } catch(e){}
-      google.script.run
-        .withSuccessHandler(function(html){
-          try { w.document.open(); w.document.write(html); w.document.close(); }
-          catch(e){ setStatus('写入弹窗失败：'+e.message, 'err'); }
-        })
-        .withFailureHandler(function(e){ setStatus('语音房生成失败：'+e.message, 'err'); })
-        .getAudioWindowHtml();
-    });
+    /* Phase 3: real <a target=_blank> link to the GitHub Pages audio room.
+       Most reliable for popups (browser always allows anchor target=_blank →
+       top-level tab → escapes the sandbox → mic works). Channel baked into
+       the URL from the round ID on load. */
+    var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?channel=pfdebate-';
+    google.script.run.withSuccessHandler(function(rid){
+      $('audioLink').href = AUDIO_PAGE + rid;
+    }).withFailureHandler(function(e){ setStatus('语音房链接生成失败：'+e.message, 'err'); }).getRoundId();
 
     // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
     google.script.run.withSuccessHandler(function(url){
