@@ -162,21 +162,35 @@ function generateCard(form) {
     }
   }
 
-  // 4. bookmark the card title heading, then insert a "card N" hyperlink → that bookmark
-  //    (clicking jumps straight to the card's position in the evidence cards tab)
+  // 4. build a link that jumps to the exact card. Try methods in order; the
+  //    return message reports which one worked so we can diagnose.
   var linkUrl = doc.getUrl();
+  var method = 'doc-only';
   try {
-    var pos = head.createPosition(0);
-    var bm = evTab.asDocumentTab().addBookmark(pos);
-    var bmId = bm.getId();
-    if (bmId) linkUrl = doc.getUrl() + '#bookmark=id.' + bmId;
-  } catch (e) {
-    // fallback: link to the tab if bookmark creation isn't supported
-    try { var tabId = evTab.getId(); if (tabId) linkUrl = doc.getUrl() + '#tab=h.' + tabId; } catch (e2) {}
+    head.setCustomId('card' + n);                                   // Method A: custom paragraph ID
+    linkUrl = doc.getUrl() + '#bookmark=card' + n;
+    method = 'customId';
+  } catch (eA) {
+    try {
+      var pos = head.createPosition(0);                             // Method B: bookmark
+      var bm = evTab.asDocumentTab().addBookmark(pos);
+      var bmId = bm.getId();
+      if (bmId) {
+        // bookmark IDs are typically like "id.xxx"; the URL fragment is #bookmark=<that>
+        var frag = (bmId.indexOf('id.') === 0 || bmId.indexOf('h.') === 0) ? bmId : 'id.' + bmId;
+        linkUrl = doc.getUrl() + '#bookmark=' + frag;
+        method = 'bookmark';
+      }
+    } catch (eB) {
+      try {                                                         // Method C: tab-level fallback
+        var tabId = evTab.getId();
+        if (tabId) { linkUrl = doc.getUrl() + '#tab=h.' + tabId; method = 'tab'; }
+      } catch (eC) {}
+    }
   }
   _insertLinkAtCursor(doc, 'card ' + n, linkUrl);
 
-  return 'card ' + n + ' ✓ 已生成：evidence cards 标签页加了卡片，当前 Doc 光标处插了超链接（点开跳到对应卡片位置）。' +
+  return 'card ' + n + ' ✓ 已生成。链接方式=' + method + '（customId 或 bookmark = 精确跳卡片；tab = 只跳标签页）。' +
     (form.highlight && !highlightFound ? '（highlight 在 quote 里没找到，没加高亮。）' : '');
 }
 
