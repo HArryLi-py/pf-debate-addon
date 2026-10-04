@@ -3,8 +3,26 @@
 <head>
 <base target="_top">
 <meta charset="utf-8">
-<!-- Agora Web SDK v4. If this CDN URL 404s, the status will say "Agora SDK 没加载" — tell me and I switch the URL. -->
-<script src="https://download.agoraio.com/sdk/release/AgoraRTC_N-4.21.0.js"></script>
+<!-- Agora Web SDK v4 UMD build (global AgoraRTC). Multi-CDN fallback:
+     jsdelivr → unpkg → official agora.io (the .io domain, not .com). -->
+<script>
+(function(){
+  var URLS = [
+    'https://cdn.jsdelivr.net/npm/agora-rtc-sdk-ng@4.24.8/dist/AgoraRTC_N-production.js',
+    'https://unpkg.com/agora-rtc-sdk-ng@4.24.8/dist/AgoraRTC_N-production.js',
+    'https://download.agora.io/sdk/release/AgoraRTC_N-4.21.0.js'
+  ];
+  function tryLoad(i){
+    if (i >= URLS.length){ window._agoraFailed = true; return; }
+    var s = document.createElement('script');
+    s.src = URLS[i];
+    s.onload = function(){ window._agoraLoaded = true; };
+    s.onerror = function(){ s.remove(); tryLoad(i+1); };
+    document.head.appendChild(s);
+  }
+  tryLoad(0);
+})();
+</script>
 <style>
   :root{--bg:#fff;--fg:#162033;--muted:#5f6b80;--accent:#2563eb;--accent-2:#1d4ed8;--ok:#16a34a;--err:#dc2626;--r:10px;
         --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
@@ -47,6 +65,7 @@
 
     var client=null, localAudio=null, appId='', channel='', uid=0;
     var remoteUsers = {};
+    var _startRetries = 0;
 
     function renderParticipants(){
       var html='<div class="you">🎤 你 (uid '+uid+') — '+ (localAudio ? (localAudio.muted?'静音':'开麦') : '加入中') +'</div>';
@@ -58,7 +77,14 @@
 
     function startAudio(){
       if (typeof AgoraRTC === 'undefined'){
-        setStatus('Agora SDK 没加载（CDN 可能被墙/URL 变了）。告诉我，我换 SDK URL。', 'err');
+        if (window._agoraFailed){
+          setStatus('Agora SDK 三个 CDN 都没加载（jsdelivr / unpkg / 官方 download.agora.io 全失败）。你网络可能拦了外部脚本——检查浏览器或代理是否放行 cdn.jsdelivr.net / unpkg.com / download.agora.io。', 'err');
+          return;
+        }
+        // SDK still loading (async) — retry
+        if (_startRetries++ > 20){ setStatus('Agora SDK 加载超时（20 秒）。', 'err'); return; }
+        setStatus('Agora SDK 加载中…');
+        setTimeout(startAudio, 500);
         return;
       }
       try {
