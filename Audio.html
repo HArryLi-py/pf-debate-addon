@@ -4,382 +4,360 @@
 <base target="_top">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PF Debate 辩论房间</title>
 <script>
 (function(){var U=['https://cdn.jsdelivr.net/npm/agora-rtc-sdk-ng@4.24.8/dist/AgoraRTC_N-production.js','https://unpkg.com/agora-rtc-sdk-ng@4.24.8/dist/AgoraRTC_N-production.js','https://download.agora.io/sdk/release/AgoraRTC_N-4.21.0.js'];
 function t(i){if(i>=U.length){window._af=true;return}var s=document.createElement('script');s.src=U[i];s.onload=function(){window._al=true};s.onerror=function(){s.remove();t(i+1)};document.head.appendChild(s)}t(0)})();
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:13px;color:#162033;background:#0d1a2e;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-.header{background:#15243c;padding:8px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(149,173,214,.2)}
-.phase-label{flex:1;font-size:14px;font-weight:600;color:#4f8ef7}
-.timer-box{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:#e9eef7;background:#1d3050;padding:4px 12px;border-radius:6px;min-width:80px;text-align:center}
-.timer-box.warn{color:#e57b7b}.timer-box.done{color:#fff;background:#dc2626;animation:p 1s infinite}@keyframes p{50%{opacity:.5}}
-.judge-controls{display:flex;gap:4px}
-.judge-controls button{background:#1d3050;color:#e9eef7;border:1px solid rgba(149,173,214,.2);border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer}
-.judge-controls button:hover{background:#2a4060}
+:root{--pro:#2563eb;--con:#dc2626;--judge:#ffc107;--bg:#0d1a2e;--bg2:#15243c;--bg3:#1d3050;--fg:#e9eef7;--muted:#94a8c6;--ok:#1b873f;--err:#e57b7b}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:13px;color:var(--fg);background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+/* Claim screen */
+.claim{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:20px}
+.claim h2{font-size:20px;margin-bottom:20px}
+.claim-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:360px}
+.claim-btn{background:var(--bg2);border:2px solid;border-radius:10px;padding:18px;text-align:center;cursor:pointer;color:var(--fg);font-size:15px;font-weight:600;transition:background .2s}
+.claim-btn.pro{border-color:var(--pro)}.claim-btn.con{border-color:var(--con)}.claim-btn.judge{border-color:var(--judge)}.claim-btn.aud{border-color:var(--muted);grid-column:span 2}
+.claim-btn:hover{background:var(--bg3)}
+.claim-btn small{display:block;font-size:10px;color:var(--muted);font-weight:400;margin-top:2px}
+.claim-status{color:var(--muted);font-size:12px;margin-top:16px;text-align:center;max-width:400px}
+.claim-status.err{color:var(--err)}
+.claim-back{background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;margin-top:10px;text-decoration:underline}
+.fb-fallback{margin-top:12px;text-align:center;display:none}
+.fb-fallback input{background:var(--bg2);border:1px solid var(--muted);border-radius:4px;padding:6px 8px;color:var(--fg);font-size:12px;width:300px;margin-bottom:6px}
+.fb-fallback button{background:var(--pro);color:#fff;border:0;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer}
+/* Room layout */
+.room{display:none;flex:1;flex-direction:column;overflow:hidden}
+.header{background:var(--bg2);padding:8px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(149,173,214,.15)}
+.header .phase{flex:1;font-size:14px;font-weight:600;color:var(--pro)}
+.header .timer{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--bg3);padding:4px 16px;border-radius:8px;min-width:100px;text-align:center}
+.header .timer.warn{color:var(--err)}.header .timer.done{color:#fff;background:var(--err);animation:blink 1s infinite}@keyframes blink{50%{opacity:.4}}
+.judge-ctrl{display:none;gap:4px}
+.judge-ctrl button{background:var(--bg3);color:var(--fg);border:1px solid rgba(149,173,214,.2);border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer}
+.judge-ctrl button:hover{background:#2a4060}
 .main{flex:1;display:flex;overflow:hidden}
-.seats{flex:1;padding:10px;overflow:auto}
-.seat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:600px;margin:0 auto}
-.seat{background:#15243c;border:1px solid rgba(149,173,214,.15);border-radius:8px;padding:10px;text-align:center;min-height:70px;display:flex;flex-direction:column;justify-content:center}
-.seat.pro{border-color:rgba(79,142,247,.3)}.seat.con{border-color:rgba(220,38,38,.3)}.seat.judge{border-color:rgba(255,193,7,.3)}.seat.audience{border-color:rgba(149,173,214,.1);grid-column:span 2}
-.seat-name{font-size:11px;color:#94a8c6;margin-bottom:2px}
-.seat-occupant{font-size:13px;font-weight:600;color:#e9eef7}
-.seat-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#333;margin-left:4px}
-.seat-live.on{background:#1b873f;animation:pulse 1.5s infinite}@keyframes pulse{50%{opacity:.4}}
-.seat-claim{background:#2563eb;color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;margin-top:4px}
-.seat-claim:hover{background:#1d4ed8}
-.seat-empty{color:#5d6f8c;font-size:11px}
-.chat{width:280px;background:#0d1a2e;border-left:1px solid rgba(149,173,214,.15);display:flex;flex-direction:column}
-.chat-header{padding:6px 10px;font-size:11px;color:#94a8c6;border-bottom:1px solid rgba(149,173,214,.1)}
+.col{flex:1;padding:10px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.col-center{flex:0 0 240px;text-align:center;padding:10px}
+.col-center .phase-card{background:var(--bg2);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:10px}
+.col-center .phase-card h3{font-size:15px;color:var(--pro);margin-bottom:4px}
+.col-center .phase-card p{font-size:11px;color:var(--muted)}
+.col-center .speaking{font-size:11px;color:var(--ok);margin-top:6px}
+.seat{background:var(--bg2);border:1px solid rgba(149,173,214,.12);border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;min-height:56px}
+.seat.pro{border-color:rgba(37,99,235,.2)}.seat.con{border-color:rgba(220,38,38,.2)}.seat.judge{border-color:rgba(255,193,7,.2)}
+.video-box{width:48px;height:48px;border-radius:6px;background:#0a1525;flex-shrink:0;overflow:hidden;position:relative}
+.video-box video{width:100%;height:100%;object-fit:cover}
+.video-box .placeholder{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:18px;color:var(--muted)}
+.seat-info{flex:1;min-width:0}
+.seat-role{font-size:10px;color:var(--muted)}.seat-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seat-ctrl{display:flex;gap:4px;flex-shrink:0}
+.seat-ctrl button{background:var(--bg3);border:0;border-radius:4px;width:28px;height:28px;font-size:12px;cursor:pointer;color:var(--fg)}
+.seat-ctrl button.on{color:var(--ok)}.seat-ctrl button.off{color:var(--muted);opacity:.5}
+.seat-dot{width:7px;height:7px;border-radius:50%;background:#333;flex-shrink:0}
+.seat-dot.live{background:var(--ok);animation:blink 1.5s infinite}
+.col-center .audience-box{background:var(--bg2);border-radius:8px;padding:8px;font-size:11px;color:var(--muted)}
+.chat{width:220px;background:var(--bg);border-left:1px solid rgba(149,173,214,.1);display:flex;flex-direction:column}
+.chat-head{padding:6px 10px;font-size:11px;color:var(--muted);border-bottom:1px solid rgba(149,173,214,.08)}
 .chat-list{flex:1;overflow-y:auto;padding:6px 10px}
-.chat-msg{font-size:12px;color:#e9eef7;margin:4px 0;line-height:1.4}
-.chat-msg b{color:#4f8ef7;margin-right:4px}.chat-msg.me b{color:#1b873f}
-.chat-msg.sys{color:#5d6f8c;font-style:italic;font-size:11px}
+.chat-msg{font-size:12px;margin:3px 0;line-height:1.4}.chat-msg b{color:var(--pro);margin-right:3px}.chat-msg.me b{color:var(--ok)}
+.chat-msg.sys{color:var(--muted);font-size:11px;font-style:italic}
 .chat-input{display:flex;gap:4px;padding:6px}
-.chat-input input{flex:1;background:#15243c;border:1px solid rgba(149,173,214,.15);border-radius:4px;padding:5px 8px;color:#e9eef7;font-size:12px}
-.chat-input button{background:#2563eb;color:#fff;border:0;border-radius:4px;padding:5px 10px;font-size:12px;cursor:pointer}
-.footer{background:#15243c;padding:6px 12px;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(149,173,214,.2)}
-.footer button{background:#1d3050;color:#e9eef7;border:1px solid rgba(149,173,214,.2);border-radius:4px;padding:5px 10px;font-size:12px;cursor:pointer}
-.footer .status{flex:1;font-size:11px;color:#5d6f8c}
-.footer .status.ok{color:#1b873f}.footer .status.err{color:#e57b7b}
-.claim-screen{position:fixed;inset:0;background:#0d1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:20px}
-.claim-screen h2{color:#e9eef7;font-size:18px;margin-bottom:16px}
-.claim-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:400px}
-.claim-btn{background:#15243c;border:2px solid rgba(149,173,214,.2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;color:#e9eef7;font-size:14px;font-weight:600}
-.claim-btn.pro{border-color:#4f8ef7}.claim-btn.con{border-color:#dc2626}.claim-btn.judge{border-color:#ffc107}.claim-btn.audience{border-color:#666;grid-column:span 2}
-.claim-btn:hover{background:#1d3050}.claim-btn:disabled{opacity:.3;cursor:not-allowed}
-.claim-btn .desc{font-size:10px;color:#5d6f8c;font-weight:400;margin-top:2px}
+.chat-input input{flex:1;background:var(--bg2);border:1px solid rgba(149,173,214,.12);border-radius:4px;padding:5px 7px;color:var(--fg);font-size:12px}
+.chat-input button{background:var(--pro);color:#fff;border:0;border-radius:4px;padding:5px 8px;font-size:12px;cursor:pointer}
+.footer{background:var(--bg2);padding:6px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(149,173,214,.15)}
+.footer button{background:var(--bg3);color:var(--fg);border:1px solid rgba(149,173,214,.15);border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer}
+.footer .st{flex:1;font-size:11px;color:var(--muted)}.footer .st.ok{color:var(--ok)}.footer .st.err{color:var(--err)}
 </style>
 </head>
 <body>
 
-<div class="claim-screen" id="claimScreen">
-  <h2>选择你的席位</h2>
-  <div id="claimStatus" style="color:#94a8c6;font-size:12px;margin-bottom:10px;text-align:center;max-width:400px"></div>
+<!-- Claim Screen -->
+<div class="claim" id="claim">
+  <h2 id="claimTitle">选择阵营</h2>
   <div class="claim-grid" id="claimGrid"></div>
-  <div id="fbFallback" style="display:none;margin-top:16px;text-align:center">
-    <p style="color:#94a8c6;font-size:11px;margin-bottom:6px">没收到 Firebase URL。在侧边栏先测一下 Firebase 连接（自动存 URL），或在这里手动粘贴：</p>
-    <input id="fbManual" placeholder="https://你的项目.firebaseio.com" style="background:#15243c;border:1px solid rgba(149,173,214,.2);border-radius:4px;padding:6px 8px;color:#e9eef7;font-size:12px;width:300px;margin-bottom:6px">
-    <button onclick="var u=document.getElementById('fbManual').value.trim();if(u){fbUrl=u;document.getElementById('fbFallback').style.display='none';init()}" style="background:#2563eb;color:#fff;border:0;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer">连接</button>
+  <div class="claim-status" id="claimStatus">加载中…</div>
+  <div class="fb-fallback" id="fbFallback">
+    <p style="color:var(--muted);font-size:11px;margin-bottom:6px">没收到 Firebase URL，手动粘贴：</p>
+    <input id="fbManual" placeholder="https://你的项目.firebaseio.com">
+    <button onclick="var u=document.getElementById('fbManual').value.trim();if(u){fbUrl=u;document.getElementById('fbFallback').style.display='none';init()}">连接</button>
   </div>
 </div>
 
-<div class="header" id="roomHeader" style="display:none">
-  <div class="phase-label" id="phaseLabel">等待赛程…</div>
-  <div class="timer-box" id="timerBox">--:--</div>
-  <div class="judge-controls" id="judgeControls" style="display:none">
-    <button id="phasePrev">←</button>
-    <button id="phaseNext">→</button>
-    <button id="timerStart">▶</button>
-    <button id="timerPause">⏸</button>
-    <button id="timerReset">↺</button>
-  </div>
-</div>
-
-<div class="main" id="roomMain" style="display:none">
-  <div class="seats">
-    <div class="seat-grid" id="seatGrid"></div>
-  </div>
-  <div class="chat">
-    <div class="chat-header">聊天</div>
-    <div class="chat-list" id="chatList"></div>
-    <div class="chat-input">
-      <input id="chatInput" placeholder="发消息…">
-      <button id="chatSend">发送</button>
+<!-- Room -->
+<div class="room" id="room">
+  <div class="header">
+    <div class="phase" id="phaseLabel">等待开始…</div>
+    <div class="timer" id="timerBox">--:--</div>
+    <div class="judge-ctrl" id="judgeCtrl">
+      <button id="phPrev">←</button><button id="phNext">→</button>
+      <button id="tStart">▶</button><button id="tPause">⏸</button><button id="tReset">↺</button>
     </div>
   </div>
-</div>
-
-<div class="footer" id="roomFooter" style="display:none">
-  <button id="muteBtn">🎤 静音</button>
-  <button id="leaveBtn">离开</button>
-  <div class="status" id="statusLine">Ready.</div>
+  <div class="main">
+    <!-- Left: Pro team -->
+    <div class="col" id="colPro">
+      <div class="seat pro" id="seat-Pro-1"><div class="video-box" id="vid-Pro-1"><div class="placeholder">🎤</div></div><div class="seat-info"><div class="seat-role">Pro-1 一辩</div><div class="seat-name" id="name-Pro-1">空</div></div><div class="seat-dot" id="dot-Pro-1"></div></div>
+      <div class="seat pro" id="seat-Pro-2"><div class="video-box" id="vid-Pro-2"><div class="placeholder">🎤</div></div><div class="seat-info"><div class="seat-role">Pro-2 二辩</div><div class="seat-name" id="name-Pro-2">空</div></div><div class="seat-dot" id="dot-Pro-2"></div></div>
+    </div>
+    <!-- Center: timer + phase -->
+    <div class="col-center">
+      <div class="phase-card">
+        <h3 id="centerPhase">未开始</h3>
+        <p id="centerDesc">等待 Judge 开始</p>
+      </div>
+      <div class="speaking" id="centerSpeaking"></div>
+      <div class="seat judge" id="seat-Judge" style="margin-top:10px"><div class="seat-info"><div class="seat-role">Judge 裁判</div><div class="seat-name" id="name-Judge">空</div></div></div>
+      <div class="audience-box" id="audienceBox" style="margin-top:8px">观众: 0</div>
+    </div>
+    <!-- Right: Con team -->
+    <div class="col" id="colCon">
+      <div class="seat con" id="seat-Con-1"><div class="video-box" id="vid-Con-1"><div class="placeholder">🎤</div></div><div class="seat-info"><div class="seat-role">Con-1 一辩</div><div class="seat-name" id="name-Con-1">空</div></div><div class="seat-dot" id="dot-Con-1"></div></div>
+      <div class="seat con" id="seat-Con-2"><div class="video-box" id="vid-Con-2"><div class="placeholder">🎤</div></div><div class="seat-info"><div class="seat-role">Con-2 二辩</div><div class="seat-name" id="name-Con-2">空</div></div><div class="seat-dot" id="dot-Con-2"></div></div>
+    </div>
+    <!-- Chat sidebar -->
+    <div class="chat">
+      <div class="chat-head">聊天</div>
+      <div class="chat-list" id="chatList"></div>
+      <div class="chat-input"><input id="chatInput" placeholder="发消息…"><button id="chatBtn">发</button></div>
+    </div>
+  </div>
+  <div class="footer">
+    <button id="micBtn">🎤 开麦</button>
+    <button id="camBtn">📹 开摄像</button>
+    <button id="leaveBtn">离开</button>
+    <div class="st" id="stLine">Ready</div>
+  </div>
 </div>
 
 <script>
 var $=function(id){return document.getElementById(id)};
-function setStatus(m,c){var s=$('statusLine');s.textContent=m;s.className='status '+(c||'')}
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
 
-/* ===== CONFIG ===== */
-var AGORA_APP_ID='6fb557c64dc04c578ea45bbc0f29cac0';
-var AGORA_APP_CERT='8d95c2dad6214253b87e55592de978da';
-var ROLES=['Pro-1','Pro-2','Con-1','Con-2','Judge','Audience'];
-var UID_MAP={'Pro-1':101,'Pro-2':102,'Con-1':201,'Con-2':202,'Judge':301,'Audience':401};
-var ROLE_OF_UID={101:'Pro-1',102:'Pro-2',201:'Con-1',202:'Con-2',301:'Judge'};
+/* Config */
+var APP_ID='6fb557c64dc04c578ea45bbc0f29cac0';
+var APP_CERT='8d95c2dad6214253b87e55592de978da';
+var UID={'Pro-1':101,'Pro-2':102,'Con-1':201,'Con-2':202,'Judge':301,'Audience':401};
+var ROLE_OF={101:'Pro-1',102:'Pro-2',201:'Con-1',202:'Con-2',301:'Judge'};
 var PHASES=[
-  {n:1,name:'Pro Constructive',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},
-  {n:2,name:'Con Constructive',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:240},
-  {n:3,name:'First Crossfire',pub:['Pro-1','Con-1'],sub:{'Pro-1':['Con-1'],'Pro-2':'all','Con-1':['Pro-1'],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},
-  {n:4,name:'Pro Rebuttal',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},
-  {n:5,name:'Con Rebuttal',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:240},
-  {n:6,name:'Second Crossfire',pub:['Pro-2','Con-2'],sub:{'Pro-1':'all','Pro-2':['Con-2'],'Con-1':'all','Con-2':['Pro-2'],'Judge':'all','Audience':'all'},sec:180},
-  {n:7,name:'Pro Summary',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},
-  {n:8,name:'Con Summary',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},
-  {n:9,name:'Grand Crossfire',pub:['Pro-1','Pro-2','Con-1','Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},
-  {n:10,name:'Pro Final Focus',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:120},
-  {n:11,name:'Con Final Focus',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:120},
-  {n:12,name:'Prep (team-private)',pub:['Pro-1','Pro-2','Con-1','Con-2'],sub:{'Pro-1':['Pro-2'],'Pro-2':['Pro-1'],'Con-1':['Con-2'],'Con-2':['Con-1'],'Judge':[],'Audience':[]},sec:180}
+{n:1,name:'Pro Constructive',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},
+{n:2,name:'Con Constructive',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:240},
+{n:3,name:'First Crossfire',pub:['Pro-1','Con-1'],sub:{'Pro-1':['Con-1'],'Pro-2':'all','Con-1':['Pro-1'],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},
+{n:4,name:'Pro Rebuttal',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},
+{n:5,name:'Con Rebuttal',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:240},
+{n:6,name:'Second Crossfire',pub:['Pro-2','Con-2'],sub:{'Pro-1':'all','Pro-2':['Con-2'],'Con-1':'all','Con-2':['Pro-2'],'Judge':'all','Audience':'all'},sec:180},
+{n:7,name:'Pro Summary',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},
+{n:8,name:'Con Summary',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},
+{n:9,name:'Grand Crossfire',pub:['Pro-1','Pro-2','Con-1','Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},
+{n:10,name:'Pro Final Focus',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:120},
+{n:11,name:'Con Final Focus',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:120},
+{n:12,name:'Prep (team-private)',pub:['Pro-1','Pro-2','Con-1','Con-2'],sub:{'Pro-1':['Pro-2'],'Pro-2':['Pro-1'],'Con-1':['Con-2'],'Con-2':['Con-1'],'Judge':[],'Audience':[]},sec:180}
 ];
+/* Token port */
+function utf8B(s){var u=unescape(encodeURIComponent(s)),b=[];for(var i=0;i<u.length;i++)b.push(u.charCodeAt(i));return b}
+function cat(a){var t=0;a.forEach(function(x){t+=x.length});var o=new Uint8Array(t),f=0;a.forEach(function(x){o.set(x,f);f+=x.length});return o}
+function b64(b){var s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s)}
+function BB(){var b=[];this.u16=function(v){b.push(v&255,v>>8&255);return this};this.u32=function(v){b.push(v&255,v>>8&255,v>>16&255,v>>>24&255);return this};this.bytes=function(a){var r=a instanceof Uint8Array?Array.from(a):a;this.u16(r.length);for(var i=0;i<r.length;i++)b.push(r[i]&255);return this};this.str=function(s){return this.bytes(utf8B(s))};this.map32=function(m){var k=Object.keys(m);this.u16(k.length);for(var i=0;i<k.length;i++){this.u16(parseInt(k[i],10));this.u32(m[k[i]])}return this};this.pack=function(){return new Uint8Array(b)};return this}
+async function hmac(k,m){var ck=await crypto.subtle.importKey('raw',k instanceof Uint8Array?k:new Uint8Array(k),{name:'HMAC',hash:'SHA-256'},false,['sign']);return new Uint8Array(await crypto.subtle.sign('HMAC',ck,m instanceof Uint8Array?m:new Uint8Array(m)))}
+function adler(b){var a=1,c=0;for(var i=0;i<b.length;i++){a=(a+b[i])%65521;c=(c+a)%65521}return((c<<16)|a)>>>0}
+function zlibDef(d){var l=d.length,n=(~l)&65535,o=[120,1,1,l&255,l>>8&255,n&255,n>>8&255];for(var i=0;i<l;i++)o.push(d[i]);var ad=adler(d);o.push(ad>>>24&255,ad>>16&255,ad>>8&255,ad&255);return new Uint8Array(o)}
+function packSvc(cn,uid,exp){var t=new BB().u16(1).pack();var p={1:exp,2:exp,3:exp,4:exp};var pb=new BB().map32(p).pack();var cnb=new BB().str(cn).pack();var ub=new BB().str(uid===0?'':String(uid)).pack();return cat([t,pb,cnb,ub])}
+async function mkToken(cn,uid){var ts=Math.floor(Date.now()/1000),exp=3600,salt=Math.floor(Math.random()*99999999)+1;var s1=await hmac(new BB().u32(ts).pack(),utf8B(APP_CERT));var sg=await hmac(new BB().u32(salt).pack(),s1);var svc=packSvc(cn,uid,exp);var si=cat([new BB().str(APP_ID).u32(ts).u32(exp).u32(salt).u16(1).pack(),svc]);var sig=await hmac(sg,si);var ct=cat([new BB().bytes(sig).pack(),si]);return'007'+b64(zlibDef(ct))}
 
-/* ===== URL PARAMS ===== */
+/* URL params */
 var params=new URLSearchParams(location.search);
 var channel=params.get('channel')||'pfdebate-default';
 var fbUrl=params.get('fbUrl')||'';
-var myRole=null, myUid=0, myName='Debater-'+Math.random().toString(36).slice(2,5);
+var myRole=null,myUid=0,myName='Debater-'+Math.random().toString(36).slice(2,5);
+var seats={},curPhase=1,desiredSub=new Set();
+var client=null,mic=null,cam=null,camEnabled=false;
+var timerEndsAt=0,timerRunning=false,timerTick=null;
 
-/* ===== AccessToken2 token port (Web Crypto) ===== */
-function utf8Bytes(s){var u=unescape(encodeURIComponent(s));var b=[];for(var i=0;i<u.length;i++)b.push(u.charCodeAt(i));return b}
-function concatBytes(a){var t=0;a.forEach(function(x){t+=x.length});var o=new Uint8Array(t);var f=0;a.forEach(function(x){o.set(x,f);f+=x.length});return o}
-function bytesB64(b){var s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s)}
-function ByteBuf(){var b=[];this.putUint16=function(v){b.push(v&0xff,(v>>8)&0xff);return this};this.putUint32=function(v){b.push(v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>>24)&0xff);return this};this.putBytes=function(a){var r=a instanceof Uint8Array?Array.from(a):a;this.putUint16(r.length);for(var i=0;i<r.length;i++)b.push(r[i]&0xff);return this};this.putString=function(s){return this.putBytes(utf8Bytes(s))};this.putTreeMapUInt32=function(m){var k=Object.keys(m);this.putUint16(k.length);for(var i=0;i<k.length;i++){this.putUint16(parseInt(k[i],10));this.putUint32(m[k[i]])}return this};this.pack=function(){return new Uint8Array(b)};return this}
-async function hmac(k,m){var ck=await crypto.subtle.importKey('raw',k instanceof Uint8Array?k:new Uint8Array(k),{name:'HMAC',hash:'SHA-256'},false,['sign']);return new Uint8Array(await crypto.subtle.sign('HMAC',ck,m instanceof Uint8Array?m:new Uint8Array(m)))}
-function adler32(b){var a=1,c=0;for(var i=0;i<b.length;i++){a=(a+b[i])%65521;c=(c+a)%65521}return((c<<16)|a)>>>0}
-function zlibDeflate(d){var l=d.length,n=(~l)&0xffff,o=[0x78,0x01,0x01,l&0xff,(l>>8)&0xff,n&0xff,(n>>8)&0xff];for(var i=0;i<l;i++)o.push(d[i]);var ad=adler32(d);o.push((ad>>>24)&0xff,(ad>>16)&0xff,(ad>>8)&0xff,ad&0xff);return new Uint8Array(o)}
-function packSvc(cn,uid,exp){var t=new ByteBuf().putUint16(1).pack();var p={1:exp,2:exp,3:exp,4:exp};var pb=new ByteBuf().putTreeMapUInt32(p).pack();var cnb=new ByteBuf().putString(cn).pack();var ub=new ByteBuf().putString(uid===0?'':String(uid)).pack();return concatBytes([t,pb,cnb,ub])}
-async function buildToken(cn,uid){var ts=Math.floor(Date.now()/1000),exp=3600,salt=Math.floor(Math.random()*99999999)+1;var s1=await hmac(new ByteBuf().putUint32(ts).pack(),utf8Bytes(AGORA_APP_CERT));var sg=await hmac(new ByteBuf().putUint32(salt).pack(),s1);var svc=packSvc(cn,uid,exp);var si=concatBytes([new ByteBuf().putString(AGORA_APP_ID).putUint32(ts).putUint32(exp).putUint32(salt).putUint16(1).pack(),svc]);var sig=await hmac(sg,si);var ct=concatBytes([new ByteBuf().putBytes(sig).pack(),si]);return'007'+bytesB64(zlibDeflate(ct))}
-
-/* ===== Firebase ===== */
+/* Firebase */
 var fb=null,fm=null,fd=null;
-async function ensureFB(url){
-  if(fd)return fd;
-  var m=await Promise.all([import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')]);
-  fm=m;fd=m[1].getDatabase(m[0].initializeApp({databaseURL:url}));return fd;
-}
-function fbRef(path){return fm[1].ref(fd,path)}
-function fbOn(ref,cb){fm[1].onValue(ref,cb)}
-function fbSet(ref,val){fm[1].set(ref,val)}
-function fbPush(ref,val){fm[1].push(ref,val)}
-function fbTxn(ref,fn){fm[1].runTransaction(ref,fn)}
+async function ensureFB(url){if(fd)return fd;var m=await Promise.all([import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')]);fm=m;fd=m[1].getDatabase(m[0].initializeApp({databaseURL:url}));return fd}
+function fr(p){return fm[1].ref(fd,p)}function fOn(r,cb){fm[1].onValue(r,cb)}function fSet(r,v){fm[1].set(r,v)}function fPush(r,v){fm[1].push(r,v)}function fTxn(r,fn){fm[1].runTransaction(r,fn)}
 
-/* ===== State ===== */
-var seats={};var currentPhase=1;var desiredSub=new Set();var client=null,mic=null;var timerEndsAt=0,timerDur=0,timerRunning=false,timerTick=null;
-
-/* ===== Seat Claim ===== */
-function renderClaimGrid(){
+/* Claim screen: two-step (side → role) */
+var claimStep=1;
+function renderClaim(){
   var g=$('claimGrid');g.innerHTML='';
-  ROLES.forEach(function(role){
-    var btn=document.createElement('button');
-    btn.className='claim-btn '+(role.startsWith('Pro')?'pro':role.startsWith('Con')?'con':role==='Judge'?'judge':'audience');
-    var occ=seats[role];
-    btn.innerHTML='<div>'+role+'</div><div class="desc">'+(occ?occ.displayName+' 已占':'点击选择')+'</div>';
-    btn.disabled=!!occ;
-    btn.addEventListener('click',function(){claimSeat(role)});
-    g.appendChild(btn);
-  });
+  if(claimStep===1){
+    $('claimTitle').textContent='选择阵营';
+    [['正方 Pro','pro'],['反方 Con','con'],['裁判 Judge','judge'],['观众 Audience','aud']].forEach(function(item){
+      var b=document.createElement('button');b.className='claim-btn '+item[1];
+      b.innerHTML=item[0]+'<small>'+({pro:'一辩/二辩',con:'一辩/二辩',judge:'控赛程+计时器',aud:'只听不说'}[item[1]]||'')+'</small>';
+      b.onclick=function(){claimStep=item[1];renderClaim()};
+      g.appendChild(b);
+    });
+  } else if(claimStep==='pro'){
+    $('claimTitle').textContent='正方 — 选择辩手';
+    ['Pro-1','Pro-2'].forEach(function(r){var b=document.createElement('button');b.className='claim-btn pro';b.innerHTML=r+'<small>'+(r==='Pro-1'?'一辩':'二辩')+'</small>';b.disabled=!!seats[r];b.onclick=function(){claimSeat(r)};g.appendChild(b)});
+    var back=document.createElement('button');back.className='claim-back';back.textContent='← 返回';back.onclick=function(){claimStep=1;renderClaim()};g.appendChild(back);
+  } else if(claimStep==='con'){
+    $('claimTitle').textContent='反方 — 选择辩手';
+    ['Con-1','Con-2'].forEach(function(r){var b=document.createElement('button');b.className='claim-btn con';b.innerHTML=r+'<small>'+(r==='Con-1'?'一辩':'二辩')+'</small>';b.disabled=!!seats[r];b.onclick=function(){claimSeat(r)};g.appendChild(r)});
+    var back=document.createElement('button');back.className='claim-back';back.textContent='← 返回';back.onclick=function(){claimStep=1;renderClaim()};g.appendChild(back);
+  } else {claimSeat(claimStep==='judge'?'Judge':'Audience')}
 }
+
 async function claimSeat(role){
   if(seats[role])return;
-  var claimed=false;
-  await fbTxn(fbRef('rooms/'+channel+'/seats/'+role),function(cur){
-    if(cur===null){cur={uid:myUid,displayName:myName,claimedAt:Date.now()};claimed=true;return cur}
-    return;
-  });
-  if(claimed){
-    myRole=role;myUid=UID_MAP[role]||Math.floor(Math.random()*900)+100;
-    fbSet(fbRef('rooms/'+channel+'/roster/'+myUid),role);
+  var ok=false;
+  try{await fTxn(fr('rooms/'+channel+'/seats/'+role),function(c){if(c===null){c={uid:UID[role]||Math.floor(Math.random()*900)+100,displayName:myName,claimedAt:Date.now()};ok=true;return c}return})}catch(e){}
+  if(ok){
+    myRole=role;myUid=UID[role]||Math.floor(Math.random()*900)+100;
+    fSet(fr('rooms/'+channel+'/roster/'+myUid),role);
     startRoom();
-  }else{
-    setStatus('席位被抢先了，选另一个', 'err');
-    fbOn(fbRef('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaimGrid()});
-  }
+  }else{$('claimStatus').textContent='席位被占了，选另一个';$('claimStatus').className='claim-status err';fOn(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaim()})}
 }
 
-/* ===== Start Room (after seat claimed) ===== */
+/* Start room */
 async function startRoom(){
-  $('claimScreen').style.display='none';
-  $('roomHeader').style.display='flex';
-  $('roomMain').style.display='flex';
-  $('roomFooter').style.display='flex';
-  if(myRole==='Judge'){$('judgeControls').style.display='flex'}
+  $('claim').style.display='none';
+  $('room').style.display='flex';
+  if(myRole==='Judge')$('judgeCtrl').style.display='flex';
   renderSeats();
-  // Agora join
-  setStatus('加入音频频道…');
-  if(typeof AgoraRTC==='undefined'){setStatus('Agora SDK 没加载', 'err');return}
+  $('stLine').textContent='加入音频频道…';
+  if(typeof AgoraRTC==='undefined'){$('stLine').textContent='Agora SDK 没加载';$('stLine').className='st err';return}
   try{
     client=AgoraRTC.createClient({mode:'rtc',codec:'vp8'});
-    client.on('user-published',onUserPublished);
-    client.on('user-unpublished',onUserUnpublished);
-    client.on('user-left',onUserLeft);
-    var token=await buildToken(channel,myUid);
-    await client.join(AGORA_APP_ID,channel,token,myUid);
+    client.on('user-published',onPub);
+    client.on('user-unpublished',onUnpub);
+    client.on('user-left',function(){renderSeats()});
+    var token=await mkToken(channel,myUid);
+    await client.join(APP_ID,channel,token,myUid);
     mic=await AgoraRTC.createMicrophoneAudioTrack();
     await client.publish(mic);
-    mic.setMuted(true); // start muted; phase enforcement will unmute
-    setStatus('已加入 ✓');
-    // initial phase enforcement
-    enforcePhase(currentPhase);
-  }catch(e){setStatus('加入失败: '+e.message,'err')}
-  // Firebase listeners
-  fbOn(fbRef('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v&&typeof v==='number'){currentPhase=v;enforcePhase(v);renderPhase()}});
-  fbOn(fbRef('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderSeats()});
-  fbOn(fbRef('rooms/'+channel+'/timer'),function(s){var v=s.val();if(v){timerRunning=v.running;timerEndsAt=v.endsAt||0;timerDur=v.durationSec||0;renderTimer()}});
-  fbOn(fbRef('rooms/'+channel+'/chat'),function(s){renderChat(s.val()||{})});
-  // my name from roster
-  if(myRole!=='Judge'&&myRole!=='Audience'){$('muteBtn').textContent='🎤 静音'}
+    mic.setMuted(true);
+    $('stLine').textContent='已加入 ✓';$('stLine').className='st ok';
+    enforcePhase(curPhase);
+  }catch(e){$('stLine').textContent='加入失败: '+e.message;$('stLine').className='st err'}
+  fOn(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v&&typeof v==='number'){curPhase=v;enforcePhase(v);renderPhase()}});
+  fOn(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderSeats()});
+  fOn(fr('rooms/'+channel+'/timer'),function(s){var v=s.val();if(v){timerRunning=v.running;timerEndsAt=v.endsAt||0;renderTimer()}});
+  fOn(fr('rooms/'+channel+'/chat'),function(s){renderChat(s.val()||{})});
 }
 
-/* ===== Agora event handlers ===== */
-function roleOf(uid){return ROLE_OF_UID[uid]||(uid>=401?'Audience':'unknown')}
-function onUserPublished(user,mediaType){
-  if(mediaType!=='audio')return;
+/* Agora events */
+function roleOf(uid){return ROLE_OF[uid]||(uid>=401?'Audience':'?')}
+function onPub(user,mt){
+  if(mt!=='audio'&&mt!=='video')return;
   var r=roleOf(user.uid);
   if(desiredSub.has(r)){
-    client.subscribe(user,'audio').then(function(t){t.play()}).catch(function(){});
+    client.subscribe(user,mt).then(function(t){
+      if(mt==='audio')t.play();
+      else if(mt==='video'){var box=$('vid-'+r);if(box){box.innerHTML='';t.play(box)}}
+    }).catch(function(){});
   }
 }
-function onUserUnpublished(user,mediaType){ /* SDK auto-releases subscribed tracks */ }
-function onUserLeft(user){ renderSeats(); }
+function onUnpub(user,mt){var r=roleOf(user.uid);var box=$('vid-'+r);if(box&&mt==='video')box.innerHTML='<div class="placeholder">🎤</div>'}
 
-/* ===== Phase Enforcement ===== */
+/* Phase enforcement */
 async function enforcePhase(phase){
   var rule=PHASES.find(function(p){return p.n===phase})||PHASES[0];
-  // my mic
   var shouldPub=rule.pub.includes(myRole);
-  if(mic){await mic.setMuted(!shouldPub)}
-  // desired subscribe set
-  var subRule=rule.sub[myRole]||[];
+  if(mic)await mic.setMuted(!shouldPub);
+  if(cam&&camEnabled)await cam.setMuted(!shouldPub);
+  $('micBtn').textContent=shouldPub?'🎤 开麦（当前可说话）':'🎤 静音（当前轮不到）';
+  var sr=rule.sub[myRole]||[];
   desiredSub=new Set();
-  if(subRule==='all'){rule.pub.forEach(function(r){if(r!==myRole)desiredSub.add(r)})}
-  else if(Array.isArray(subRule)){subRule.forEach(function(r){desiredSub.add(r)})}
-  // diff + apply
+  if(sr==='all')rule.pub.forEach(function(r){if(r!==myRole)desiredSub.add(r)});
+  else if(Array.isArray(sr))sr.forEach(function(r){desiredSub.add(r)});
   if(client){
     for(var i=0;i<client.remoteUsers.length;i++){
-      var u=client.remoteUsers[i];
-      if(!u.hasAudio)continue;
-      var r=roleOf(u.uid);
-      var want=desiredSub.has(r);
-      var has=!!u.audioTrack;
+      var u=client.remoteUsers[i];if(!u.hasAudio)continue;
+      var r=roleOf(u.uid);var want=desiredSub.has(r);var has=!!u.audioTrack;
       if(want&&!has){try{var t=await client.subscribe(u,'audio');t.play()}catch(e){}}
       else if(!want&&has){try{await client.unsubscribe(u,'audio')}catch(e){}}
+      if(want&&u.hasVideo&&!u.videoTrack){try{var vt=await client.subscribe(u,'video');var box=$('vid-'+r);if(box){box.innerHTML='';vt.play(box)}}catch(e){}}
+      else if(!want&&u.videoTrack){try{await client.unsubscribe(u,'video')}catch(e){}}
     }
   }
-  renderPhase();
-  renderSeats(); // update live dots
-  addSysMsg('赛程: '+rule.name);
+  renderPhase();renderSeats();
 }
 
-/* ===== UI Rendering ===== */
+/* UI */
 function renderPhase(){
-  var rule=PHASES.find(function(p){return p.n===currentPhase})||PHASES[0];
-  $('phaseLabel').textContent=rule.name+' — 开麦: '+rule.pub.join(', ');
+  var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
+  $('phaseLabel').textContent=rule.name;
+  $('centerPhase').textContent=rule.name;
+  $('centerDesc').textContent='时长: '+Math.floor(rule.sec/60)+'分 '+rule.sec%60+'秒';
+  $('centerSpeaking').textContent='开麦: '+rule.pub.join(', ');
 }
 function renderSeats(){
-  var g=$('seatGrid');g.innerHTML='';
-  var rule=PHASES.find(function(p){return p.n===currentPhase})||PHASES[0];
-  ['Pro-1','Pro-2','Con-1','Con-2','Judge'].forEach(function(role){
-    var d=document.createElement('div');
-    d.className='seat '+(role.startsWith('Pro')?'pro':role.startsWith('Con')?'con':'judge');
-    var occ=seats[role];
-    var live=rule.pub.includes(role);
-    d.innerHTML='<div class="seat-name">'+role+'</div>'+(occ?'<div class="seat-occupant">'+esc(occ.displayName)+'<span class="seat-live '+(live?'on':'')+'"></span></div>':'<div class="seat-empty">空</div>');
-    g.appendChild(d);
+  var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
+  ['Pro-1','Pro-2','Con-1','Con-2','Judge'].forEach(function(r){
+    var occ=seats[r];var live=rule.pub.includes(r);
+    var n=$('name-'+r);if(n)n.textContent=occ?occ.displayName:'空';
+    var d=$('dot-'+r);if(d)d.className='seat-dot'+(live&&occ?' live':'');
   });
-  var aud=document.createElement('div');aud.className='seat audience';
-  var audList=Object.keys(seats).filter(function(k){return k==='Audience'}).map(function(k){return seats[k]}).filter(Boolean);
-  aud.innerHTML='<div class="seat-name">观众 ('+audList.length+')</div><div class="seat-occupant">'+audList.map(function(a){return esc(a.displayName)}).join(', ')+'</div>';
-  g.appendChild(aud);
+  var aud=Object.keys(seats).filter(function(k){return k==='Audience'}).length;
+  $('audienceBox').textContent='观众: '+aud;
 }
 function renderTimer(){
   var box=$('timerBox');
-  function tick(){
-    if(!timerRunning||!timerEndsAt){box.textContent='--:--';box.className='timer-box';return}
+  function tick(){if(!timerRunning||!timerEndsAt){box.textContent='--:--';box.className='timer';return}
     var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));
-    var m=Math.floor(rem/60),x=rem%60;
-    box.textContent=(m<10?'0':'')+m+':'+(x<10?'0':'')+x;
-    box.className='timer-box'+(rem<=30?' warn':'')+(rem<=0?' done':'');
-  }
-  if(timerTick)clearInterval(timerTick);
-  tick();
+    var m=Math.floor(rem/60),x=rem%60;box.textContent=(m<10?'0':'')+m+':'+(x<10?'0':'')+x;
+    box.className='timer'+(rem<=30?' warn':'')+(rem<=0?' done':'');}
+  if(timerTick)clearInterval(timerTick);tick();
   if(timerRunning)timerTick=setInterval(tick,1000);
 }
 function renderChat(msgs){
-  var list=$('chatList');list.innerHTML='';
-  var keys=Object.keys(msgs).sort();
-  keys.forEach(function(k){
-    var m=msgs[k];if(!m)return;
-    var div=document.createElement('div');
-    if(m.sys){div.className='chat-msg sys';div.textContent=m.text}
-    else{div.className='chat-msg'+(m.uid===myUid?' me':'');div.innerHTML='<b>'+esc(m.displayName||'?')+':</b> '+esc(m.text)}
-    list.appendChild(div);
-  });
-  list.scrollTop=list.scrollHeight;
-}
-function addSysMsg(text){fbPush(fbRef('rooms/'+channel+'/chat'),{sys:true,text:text,ts:Date.now()})}
-
-/* ===== Judge controls ===== */
-$('phaseNext').addEventListener('click',function(){
-  var next=Math.min(12,currentPhase+1);
-  fbSet(fbRef('rooms/'+channel+'/phase'),next);
-  // arm timer for the new phase
-  var rule=PHASES.find(function(p){return p.n===next});
-  if(rule)fbSet(fbRef('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:rule.sec,label:rule.name});
-});
-$('phasePrev').addEventListener('click',function(){
-  fbSet(fbRef('rooms/'+channel+'/phase'),Math.max(1,currentPhase-1));
-});
-$('timerStart').addEventListener('click',function(){
-  var rule=PHASES.find(function(p){return p.n===currentPhase})||PHASES[0];
-  fbSet(fbRef('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+rule.sec*1000,durationSec:rule.sec,label:rule.name});
-});
-$('timerPause').addEventListener('click',function(){
-  if(timerEndsAt){var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));
-  fbSet(fbRef('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:rem,label:'paused'})}
-});
-$('timerReset').addEventListener('click',function(){
-  var rule=PHASES.find(function(p){return p.n===currentPhase})||PHASES[0];
-  fbSet(fbRef('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:rule.sec,label:rule.name});
-  $('timerBox').textContent='--:--';
-});
-
-/* ===== Chat ===== */
-$('chatSend').addEventListener('click',sendChat);
-$('chatInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();sendChat()}});
-function sendChat(){
-  var t=$('chatInput').value.trim();if(!t)return;
-  $('chatInput').value='';
-  fbPush(fbRef('rooms/'+channel+'/chat'),{uid:myUid,displayName:myName,text:t,ts:Date.now()});
+  var l=$('chatList');l.innerHTML='';var keys=Object.keys(msgs).sort();
+  keys.forEach(function(k){var m=msgs[k];if(!m)return;var d=document.createElement('div');
+    if(m.sys){d.className='chat-msg sys';d.textContent=m.text}
+    else{d.className='chat-msg'+(m.uid===myUid?' me':'');d.innerHTML='<b>'+esc(m.displayName||'?')+':</b> '+esc(m.text)}
+    l.appendChild(d)});l.scrollTop=l.scrollHeight;
 }
 
-/* ===== Mic / Leave ===== */
-$('muteBtn').addEventListener('click',function(){
-  if(!mic)return;
-  var muted=!mic.muted;mic.setMuted(muted);
-  $('muteBtn').textContent=muted?'🔇 取消静音':'🎤 静音';
-});
-$('leaveBtn').addEventListener('click',function(){
+/* Judge controls */
+$('phNext').onclick=function(){var n=Math.min(12,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),n);var r=PHASES.find(function(p){return p.n===n});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})};
+$('phPrev').onclick=function(){fSet(fr('rooms/'+channel+'/phase'),Math.max(1,curPhase-1))};
+$('tStart').onclick=function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec})};
+$('tPause').onclick=function(){if(timerEndsAt){var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:rem})}};
+$('tReset').onclick=function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec});$('timerBox').textContent='--:--'};
+
+/* Chat */
+$('chatBtn').onclick=sendChat;
+$('chatInput').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();sendChat()}};
+function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput').value='';fPush(fr('rooms/'+channel+'/chat'),{uid:myUid,displayName:myName,text:t,ts:Date.now()})}
+
+/* Mic / Cam / Leave */
+$('micBtn').onclick=function(){if(!mic)return;var m=!mic.muted;mic.setMuted(m);$('micBtn').textContent=m?'🎤 静音':'🎤 开麦'};
+$('camBtn').onclick=async function(){
+  if(!cam){
+    try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=true}catch(e){$('stLine').textContent='摄像头失败: '+e.message;return}
+  }
+  camEnabled=!camEnabled;cam.setMuted(!camEnabled);
+  $('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';
+  // play local video in own seat
+  if(camEnabled){var box=$('vid-'+myRole);if(box){box.innerHTML='';cam.play(box)}}
+  else{var box2=$('vid-'+myRole);if(box2)box2.innerHTML='<div class="placeholder">🎤</div>'}
+  // re-enforce phase (camera follows mic rules)
+  enforcePhase(curPhase);
+};
+$('leaveBtn').onclick=function(){
   try{if(mic)mic.close()}catch(e){}
+  try{if(cam)cam.close()}catch(e){}
   try{if(client)client.leave()}catch(e){}
-  // release seat
-  if(myRole)fbSet(fbRef('rooms/'+channel+'/seats/'+myRole),null);
-  if(myUid)fbSet(fbRef('rooms/'+channel+'/roster/'+myUid),null);
+  if(myRole)fSet(fr('rooms/'+channel+'/seats/'+myRole),null);
+  if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);
   window.close();
-});
+};
 
-/* ===== Init ===== */
-// Show buttons IMMEDIATELY (before async Firebase), so the page isn't empty.
-$('claimStatus').textContent = '加载中…';
-$('claimStatus').style.color = '#94a8c6';
-renderClaimGrid();
-
+/* Init */
+renderClaim();
+$('claimStatus').textContent='加载中…';
 async function init(){
   var cs=$('claimStatus');
-  if(!fbUrl){
-    cs.innerHTML = '需要 Firebase URL。在侧边栏先测一下 Firebase 连接（自动存 URL），或<a href="#" onclick="$(\'fbFallback\').style.display=\'block\';return false" style="color:#4f8ef7">手动粘贴</a>。';
-    cs.style.color = '#e57b7b';
-    $('fbFallback').style.display = 'none'; // hidden until user clicks the link
-    return;
-  }
-  cs.textContent = '连接 Firebase…';cs.style.color = '#94a8c6';
-  try{await ensureFB(fbUrl)}catch(e){
-    cs.textContent = 'Firebase 连接失败: '+e.message;cs.style.color='#e57b7b';
-    $('fbFallback').style.display='block';return;
-  }
-  cs.textContent = 'Firebase 已连 ✓ — 选一个席位加入';cs.style.color='#1b873f';
-  fbOn(fbRef('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaimGrid()});
-  fbOn(fbRef('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v)currentPhase=v});
-  renderClaimGrid();
+  if(!fbUrl){cs.innerHTML='需要 Firebase URL。<a href="#" onclick="$(\'fbFallback\').style.display=\'block\';return false" style="color:#4f8ef7">手动粘贴</a> — 或在侧边栏先测 Firebase 连接';cs.className='claim-status err';return}
+  cs.textContent='连接 Firebase…';
+  try{await ensureFB(fbUrl)}catch(e){cs.textContent='Firebase 连接失败: '+e.message;cs.className='claim-status err';$('fbFallback').style.display='block';return}
+  cs.textContent='Firebase 已连 ✓ — 选阵营加入';cs.className='claim-status';
+  fOn(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaim()});
+  fOn(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v)curPhase=v});
+  renderClaim();
 }
 init();
 </script>
