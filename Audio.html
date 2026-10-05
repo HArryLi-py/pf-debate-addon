@@ -269,7 +269,7 @@ $('resetBtn').onclick=function(){if(!fd){$('claimStatus').textContent='Firebase 
 /* Init */
 renderClaim();
 async function init(){var cs=$('claimStatus');
-  if(!fbUrl){cs.innerHTML='需要 Firebase URL — <a href="#" onclick="$(\'fbFallback\').style.display=\'block\';return false" style="color:#2563eb">手动粘贴</a>';cs.className='cs err';return}
+  if(!fbUrl){cs.innerHTML='需要 Firebase URL — 在下面粘贴你的 databaseURL（console.firebase.google.com → 你的项目 → Realtime Database → 顶部的 URL）';cs.className='cs err';$('fbFallback').style.display='block';return}
   cs.textContent='连接 Firebase…';
   try{await ensureFB(fbUrl)}catch(e){cs.textContent='Firebase 失败: '+e.message;cs.className='cs err';$('fbFallback').style.display='block';return}
   cs.textContent='Firebase 已连 ✓ — 填名字选阵营';cs.className='cs';
