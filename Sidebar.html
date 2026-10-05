@@ -91,6 +91,12 @@
     .presets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 10px}
     .presets button{padding:6px;font-size:12px}
 
+    /* phase 2 firebase connection test */
+    .fb-result{margin-top:6px;font-size:12px;line-height:1.45;padding:8px 10px;border-radius:8px;background:var(--bg-2);color:var(--muted);min-height:18px;border:1px solid transparent;white-space:pre-wrap}
+    .fb-result.ok{color:var(--ok);background:var(--ok-bg);border-color:rgba(22,163,74,.25)}
+    .fb-result.err{color:var(--err);background:var(--err-bg);border-color:rgba(220,38,38,.25)}
+    .fb-result.warn{color:#a35a00;background:#fef7e0;border-color:rgba(163,90,0,.25)}
+
     @media (prefers-reduced-motion: reduce){
       *{transition:none !important; animation:none !important}
       button:hover{transform:none}
@@ -143,6 +149,20 @@
   </div>
   <div class="presets" id="debPresets"></div>
   <div class="hint">本地计时（Phase 1，不同步）。Phase 2 用 Firebase 同步给所有辩手。</div>
+
+  <hr>
+
+  <h4>聊天 + 赛程</h4>
+  <div class="row"><button class="primary" id="chatDialogBtn">💬 打开聊天 + 赛程窗口</button></div>
+  <div class="hint">弹出独立窗口：微信样式聊天 + NSDA 赛程状态，所有辩手同步。</div>
+
+  <hr>
+
+  <h4>Phase 2 · Firebase 连接测试</h4>
+  <label>Firebase Realtime Database URL</label>
+  <input id="fbUrl" placeholder="https://<你的项目>.firebaseio.com">
+  <div class="row"><button class="primary" id="fbTestBtn">测试连接</button></div>
+  <div class="fb-result" id="fbResult">填入 databaseURL 后点测试。</div>
 
   <script>
     var $ = function(id){ return document.getElementById(id); };
@@ -248,6 +268,75 @@
 
     prepTimer.render();
     debTimer.render();
+
+    /* ---- Phase 2: Firebase (connection test + synced timers) ---- */
+    var fbApp = null, fbMods = null, fbDb = null;
+    function setFbResult(msg, cls){ var r = $('fbResult'); r.textContent = msg; r.className = 'fb-result ' + (cls||''); }
+    function ensureFirebase(url){
+      if (fbDb && fbApp) { try { if (fbApp.options && fbApp.options.databaseURL === url) return Promise.resolve(fbDb); } catch(e){} }
+      if (!window._fbWsPatched){
+        var OrigWS = window.WebSocket;
+        window.WebSocket = function(u, protocols){
+          if (typeof u === 'string' && u.indexOf('firebaseio.com') >= 0){ window._fbWsSeen = true; }
+          return protocols !== undefined ? new OrigWS(u, protocols) : new OrigWS(u);
+        };
+        window.WebSocket.prototype = OrigWS.prototype;
+        window._fbWsPatched = true;
+      }
+      window._fbWsSeen = false;
+      return Promise.all([
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
+      ]).then(function(mods){
+        fbMods = mods;
+        try { if (fbApp) mods[0].deleteApp(fbApp); } catch (e) {}
+        fbApp = mods[0].initializeApp({ databaseURL: url });
+        fbDb = mods[1].getDatabase(fbApp);
+        return fbDb;
+      });
+    }
+    function connectSync(url){
+      ensureFirebase(url).then(function(db){
+        var mod = fbMods[1];
+        google.script.run.withSuccessHandler(function(rid){
+          prepTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/prep');
+          debTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/deb');
+          setFbResult('✓ 计时器同步已启用（round: '+rid+'）', 'ok');
+        }).getRoundId();
+      }).catch(function(e){ setFbResult('同步连接失败：'+e.message, 'err'); });
+    }
+    function testFirebase(){
+      var dbUrl = $('fbUrl').value.trim();
+      if (!dbUrl){ setFbResult('先填 databaseURL', 'err'); return; }
+      setFbResult('加载 Firebase SDK…', '');
+      ensureFirebase(dbUrl).then(function(db){
+        var mod = fbMods[1];
+        var ref = mod.ref(db, 'pfdebate/test');
+        var myId = 'u' + Math.random().toString(36).slice(2,8);
+        mod.onValue(ref, function(snap){
+          var v = snap.val();
+          if (v && v.id !== myId){
+            setFbResult('✓ 收到对方消息\n传输：' + (window._fbWsSeen ? 'websocket ✓' : 'long-polling'), 'ok');
+          }
+        });
+        mod.set(ref, { id: myId, msg: 'hello from ' + myId, t: Date.now() }).then(function(){
+          var transport = window._fbWsSeen ? 'websocket ✓' : 'long-polling';
+          setFbResult('已写入测试值。传输：' + transport, window._fbWsSeen ? 'ok' : 'warn');
+          if (window._fbWsSeen){
+            google.script.run.withSuccessHandler(function(){ connectSync(dbUrl); }).setFbUrl(dbUrl);
+          }
+        }).catch(function(e){ setFbResult('写入失败：' + e.message, 'err'); });
+      }).catch(function(e){ setFbResult('SDK 加载失败：' + e.message, 'err'); });
+    }
+    $('fbTestBtn').addEventListener('click', testFirebase);
+
+    // chat dialog button
+    $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
+
+    // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
+    google.script.run.withSuccessHandler(function(url){
+      if (url){ $('fbUrl').value = url; connectSync(url); }
+    }).getFbUrl();
   </script>
 </body>
 </html>
