@@ -89,6 +89,19 @@ function getFbUrl() { return PropertiesService.getUserProperties().getProperty(F
 function setFbUrl(url) { PropertiesService.getUserProperties().setProperty(FB_URL_KEY, url || ''); return 'saved'; }
 function getRoundId() { try { return 'doc-' + DocumentApp.getActiveDocument().getId().slice(-8); } catch (e) { return 'round-default'; } }
 
+/* ====================== SETTINGS ==========================================
+   cardDestination: 'tab' (evidence cards tab) or 'append' (current doc bottom)
+   language: 'zh' or 'en' */
+var SETTINGS_KEY = 'pf_settings';
+function getSettings() {
+  var s = PropertiesService.getUserProperties().getProperty(SETTINGS_KEY);
+  return s ? JSON.parse(s) : { cardDestination: 'tab', language: 'zh' };
+}
+function setSettings(settings) {
+  PropertiesService.getUserProperties().setProperty(SETTINGS_KEY, JSON.stringify(settings));
+  return 'saved';
+}
+
 /* ====================== PHASE 3: AUDIO ROOM (Jitsi) ========================
    Live audio can't run inside the sidebar sandbox (getUserMedia blocked).
    Instead, a button opens an external Jitsi room in a new tab — the popup
@@ -210,36 +223,44 @@ function generateCard(form) {
     throw new Error('标题、citation、quote 都要填。');
   }
   var doc = DocumentApp.getActiveDocument();
+  var settings = getSettings();
+  var editUrl = 'https://docs.google.com/document/d/' + doc.getId() + '/edit';
 
-  // 1. find the "evidence cards" tab (user must create it once)
-  var evTab = _findEvidenceTab(doc);
-  if (!evTab) {
-    throw new Error('没找到名为 "' + EV_TAB_NAME + '" 的标签页。请在 Doc 左下角标签栏点 ＋ 新建一个标签页，名字填 "evidence cards"，然后再点生成。');
+  // Determine where to put the card
+  var targetBody, evTab = null, targetLabel;
+  if (settings.cardDestination === 'append') {
+    targetBody = doc.getBody();
+    targetLabel = '本文档底部';
+  } else {
+    evTab = _findEvidenceTab(doc);
+    if (!evTab) {
+      throw new Error('没找到名为 "evidence cards" 的标签页。请在 Doc 左下角标签栏点 ＋ 新建一个标签页，名字填 "evidence cards"，或者在设置里改成"本文档底部"。');
+    }
+    try { targetBody = evTab.asDocumentTab().getBody(); } catch (e) { throw new Error('无法读取 evidence cards 标签页：' + e.message); }
+    targetLabel = 'evidence cards 标签页';
   }
-  var evBody;
-  try { evBody = evTab.asDocumentTab().getBody(); } catch (e) { throw new Error('无法读取 evidence cards 标签页：' + e.message); }
 
-  // 2. increment card counter
+  // increment card counter
   var props = PropertiesService.getUserProperties();
   var n = parseInt(props.getProperty(CARD_COUNT_KEY) || '0', 10) + 1;
   props.setProperty(CARD_COUNT_KEY, String(n));
 
-  // 3. append the card to the evidence tab
-  evBody.appendParagraph(''); // blank line separator
-  var head = evBody.appendParagraph('card ' + n + ': ' + form.title);
+  // append the card
+  targetBody.appendParagraph('');
+  var head = targetBody.appendParagraph('card ' + n + ': ' + form.title);
   try { head.setHeading(DocumentApp.ParagraphHeading.HEADING2); } catch (e) {}
   head.editAsText().setFontSize(24).setBold(true).setUnderline(true).setForegroundColor('#000000');
-  evBody.appendParagraph(form.citation).editAsText().setFontSize(12);
-  var quotePara = evBody.appendParagraph(form.quote);
+  targetBody.appendParagraph(form.citation).editAsText().setFontSize(12);
+  var quotePara = targetBody.appendParagraph(form.quote);
   var qt = quotePara.editAsText();
   qt.setFontSize(9);
   var highlightFound = false;
   if (form.highlight) {
     var idx = form.quote.indexOf(form.highlight);
     if (idx >= 0) {
-      var end = idx + form.highlight.length; // exclusive
+      var end = idx + form.highlight.length;
       var hlColor = form.highlightColor || '#FFF3A0';
-      qt.setFontSize(idx, end - 1, 20)                       // highlight bigger than the 9pt quote
+      qt.setFontSize(idx, end - 1, 20)
         .setBold(idx, end - 1, true)
         .setUnderline(idx, end - 1, true)
         .setBackgroundColor(idx, end - 1, hlColor);
@@ -247,38 +268,30 @@ function generateCard(form) {
     }
   }
 
-  // 4. build a link that jumps to the exact card. Try methods in order; the
-  //    return message reports which one worked so we can diagnose.
-  //    Use the /edit URL (not doc.getUrl()'s /open?id= — the open redirect
-  //    drops the #tab= fragment, which is why the link wasn't jumping).
-  var editUrl = 'https://docs.google.com/document/d/' + doc.getId() + '/edit';
+  // build a link to the exact card
   var linkUrl = editUrl;
   var method = 'doc-only';
+  // Method A: bookmark via editAsText().createPosition(0) — fixed from head.createPosition(0)
   try {
-    head.setCustomId('card' + n);                                   // Method A: custom paragraph ID
-    linkUrl = editUrl + '#bookmark=card' + n;
-    method = 'customId';
-  } catch (eA) {
+    var pos = head.editAsText().createPosition(0);
+    var bm = (settings.cardDestination === 'append') ? doc.addBookmark(head) : evTab.asDocumentTab().addBookmark(pos);
+    var bmId = bm.getId();
+    if (bmId) {
+      linkUrl = editUrl + '#bookmark=' + bmId;
+      method = 'bookmark';
+    }
+  } catch (eB) {
+    // Method B: tab-level fallback (only for tab destination)
     try {
-      var pos = head.createPosition(0);                             // Method B: bookmark
-      var bm = evTab.asDocumentTab().addBookmark(pos);
-      var bmId = bm.getId();
-      if (bmId) {
-        // bookmark IDs are typically like "id.xxx"; the URL fragment is #bookmark=<that>
-        var frag = (bmId.indexOf('id.') === 0 || bmId.indexOf('h.') === 0) ? bmId : 'id.' + bmId;
-        linkUrl = editUrl + '#bookmark=' + frag;
-        method = 'bookmark';
-      }
-    } catch (eB) {
-      try {                                                         // Method C: tab-level fallback
+      if (evTab) {
         var tabId = evTab.getId();
         if (tabId) { linkUrl = editUrl + '#tab=h.' + tabId; method = 'tab'; }
-      } catch (eC) {}
-    }
+      }
+    } catch (eC) {}
   }
   _insertLinkAtCursor(doc, 'card ' + n, linkUrl);
 
-  return 'card ' + n + ' ✓ 已生成。链接方式=' + method + '（customId 或 bookmark = 精确跳卡片；tab = 只跳标签页）。' +
+  return 'card ' + n + ' ✓ 已添加到' + targetLabel + '。链接方式=' + method + '。' +
     (form.highlight && !highlightFound ? '（highlight 在 quote 里没找到，没加高亮。）' : '');
 }
 
