@@ -38,40 +38,11 @@ function showSidebar() {
    Stays open alongside the main sidebar — non-blocking. */
 function showChatDialog() {
   var html = HtmlService.createHtmlOutputFromFile('Chat')
-    .setTitle('PF Debate · 聊天 + 赛程')
-    .setWidth(400).setHeight(620)
+    .setTitle('PF Debate · 聊天')
+    .setWidth(400).setHeight(560)
     .setSandboxMode(HtmlService.SandboxMode.IFRAME);
-  DocumentApp.getUi().showModelessDialog(html, 'PF Debate · 聊天 + 赛程');
+  DocumentApp.getUi().showModelessDialog(html, 'PF Debate · 聊天');
 }
-
-/* Open the custom Agora audio room (modeless dialog). */
-function showAudioDialog() {
-  var html = HtmlService.createHtmlOutputFromFile('Audio')
-    .setTitle('PF Debate · 语音通话')
-    .setWidth(420).setHeight(560)
-    .setSandboxMode(HtmlService.SandboxMode.IFRAME);
-  DocumentApp.getUi().showModelessDialog(html, 'PF Debate · 语音通话');
-}
-
-/* Return the Audio.html content with the channel baked in via a PF_CONFIG
-   script. The sidebar window.open()s a top-level popup and writes this HTML
-   into it — the popup escapes the sandbox (so getUserMedia / mic works,
-   unlike the modeless dialog which blocks mic). */
-function getAudioWindowHtml() {
-  var channel = 'pfdebate-' + getRoundId();
-  var cfg = '<script>window.PF_CONFIG={channel:' + JSON.stringify(channel) + '};</script>';
-  var html = HtmlService.createHtmlOutputFromFile('Audio').getContent();
-  return cfg + html;
-}
-
-/* ====================== PHASE 3: AGORA (声网) AUDIO ========================
-   Agora is China-friendly (UDP works via China edge nodes). The Agora Web SDK
-   runs in a separate modeless dialog (Audio.html) — outside the sidebar sandbox.
-   Channel name = round ID (same Doc → same channel). App-ID-only join first;
-   token minting (with the App Certificate) added next if the project requires it. */
-var AGORA_APP_ID = '6fb557c64dc04c578ea45bbc0f29cac0';
-var AGORA_APP_CERT = '8d95c2dad6214253b87e55592de978da';  // for token minting (next)
-function getAgoraAppId() { return AGORA_APP_ID; }
 
 /* ====================== SELF-TEST (sidebar calls on load) ================= */
 function ping() {
@@ -100,21 +71,6 @@ function getSettings() {
 function setSettings(settings) {
   PropertiesService.getUserProperties().setProperty(SETTINGS_KEY, JSON.stringify(settings));
   return 'saved';
-}
-
-/* ====================== PHASE 3: AUDIO ROOM (Jitsi) ========================
-   Live audio can't run inside the sidebar sandbox (getUserMedia blocked).
-   Instead, a button opens an external Jitsi room in a new tab — the popup
-   escapes the sandbox (allow-popups-to-escape-sandbox) and can access the mic.
-   Room name is derived from the Doc ID so all debaters on the same Doc land in
-   the same room. meet.jit.si is free, no account, no self-hosting. */
-function getAudioRoomUrl() {
-  try {
-    var id = DocumentApp.getActiveDocument().getId();
-    return 'https://meet.jit.si/pfdebate-' + id + '#config.startWithVideoMuted=true';
-  } catch (e) {
-    return 'https://meet.jit.si/pfdebate-default#config.startWithVideoMuted=true';
-  }
 }
 
 /* ====================== PHASE 2: CHAT IDENTITY ============================
@@ -274,7 +230,7 @@ function generateCard(form) {
   // Method A: bookmark via editAsText().createPosition(0) — fixed from head.createPosition(0)
   try {
     var pos = head.editAsText().createPosition(0);
-    var bm = (settings.cardDestination === 'append') ? doc.addBookmark(head) : evTab.asDocumentTab().addBookmark(pos);
+    var bm = (settings.cardDestination === 'append') ? doc.getActiveTab().asDocumentTab().addBookmark(pos) : evTab.asDocumentTab().addBookmark(pos);
     var bmId = bm.getId();
     if (bmId) {
       linkUrl = editUrl + '#bookmark=' + bmId;

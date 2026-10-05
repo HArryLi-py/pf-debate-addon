@@ -111,9 +111,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
       <div class="progress-track"><div class="progress-fill" id="progFill" style="width:100%"></div></div>
       <div class="now-speaking" id="nowSpeaking">等待开始</div>
       <div class="next-up" id="nextUp"></div>
+      <div id="phaseSeq" style="font-size:10px;color:#888;max-height:90px;overflow:auto;margin-top:4px;text-align:left;padding:0 6px;line-height:1.3;border-top:1px solid #eee"></div>
       <div class="judge-ctrl" id="judgeCtrl">
         <button id="phPrev">←</button><button id="phNext">→</button>
-        <button id="prepBtn">⏱ Prep</button>
         <button id="proPrepBtn" style="background:#2563eb">正方 Prep</button>
         <button id="conPrepBtn" style="background:#dc2626">反方 Prep</button>
         <button id="stopPrepBtn" style="background:#666">⏹ 停止 Prep</button>
@@ -149,17 +149,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 
 <script>
 var $=function(id){return document.getElementById(id)};
-function esc(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function setAvatar(role,url,name){
   var av=$('av-'+role);if(!av)return;
-  if(url){av.innerHTML='<img src="'+esc(url)+'" onerror="this.parentNode.innerHTML=\''+(name||role).charAt(0).toUpperCase()+'\'">';}
-  else{av.textContent=(name||role).charAt(0).toUpperCase()}
+  var fb=(name||role).charAt(0).toUpperCase();
+  if(url){av.innerHTML='';var img=document.createElement('img');img.src=url;img.onerror=function(){av.textContent=fb};av.appendChild(img)}
+  else{av.textContent=fb}
 }
 /* Config */
 var APP_ID='6fb557c64dc04c578ea45bbc0f29cac0',APP_CERT='8d95c2dad6214253b87e55592de978da';
 var UID={'Pro-1':101,'Pro-2':102,'Con-1':201,'Con-2':202,'Judge':301,'Audience':401};
 var ROLE_OF={101:'Pro-1',102:'Pro-2',201:'Con-1',202:'Con-2',301:'Judge'};
-var PHASES=[{n:1,name:'Pro Constructive',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:2,name:'Con Constructive',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:3,name:'First Crossfire',pub:['Pro-1','Con-1'],sub:{'Pro-1':['Con-1'],'Pro-2':'all','Con-1':['Pro-1'],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:4,name:'Pro Rebuttal',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:5,name:'Con Rebuttal',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:240},{n:6,name:'Second Crossfire',pub:['Pro-2','Con-2'],sub:{'Pro-1':'all','Pro-2':['Con-2'],'Con-1':'all','Con-2':['Pro-2'],'Judge':'all','Audience':'all'},sec:180},{n:7,name:'Pro Summary',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:8,name:'Con Summary',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:9,name:'Grand Crossfire',pub:['Pro-1','Pro-2','Con-1','Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:10,name:'Pro Final Focus',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:120},{n:11,name:'Con Final Focus',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:120},{n:12,name:'Prep (team-private)',pub:['Pro-1','Pro-2','Con-1','Con-2'],sub:{'Pro-1':['Pro-2'],'Pro-2':['Pro-1'],'Con-1':['Con-2'],'Con-2':['Con-1'],'Judge':[],'Audience':[]},sec:180}];
+var PHASES=[{n:1,name:'Pro Constructive',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:2,name:'Con Constructive',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:3,name:'First Crossfire',pub:['Pro-1','Con-1'],sub:{'Pro-1':['Con-1'],'Pro-2':'all','Con-1':['Pro-1'],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:4,name:'Pro Rebuttal',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:5,name:'Con Rebuttal',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:240},{n:6,name:'Second Crossfire',pub:['Pro-2','Con-2'],sub:{'Pro-1':'all','Pro-2':['Con-2'],'Con-1':'all','Con-2':['Pro-2'],'Judge':'all','Audience':'all'},sec:180},{n:7,name:'Pro Summary',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:8,name:'Con Summary',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:9,name:'Grand Crossfire',pub:['Pro-1','Pro-2','Con-1','Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:10,name:'Pro Final Focus',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:120},{n:11,name:'Con Final Focus',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:120}];
+/* Prep is NOT a phase — it's a per-team cumulative 3:00 resource usable between speeches (NSDA 2025-2026). Audio routing when a team's Prep is running: only hear teammate. */
+var PREP_SUB={'Pro-1':['Pro-2'],'Pro-2':['Pro-1'],'Con-1':['Con-2'],'Con-2':['Con-1'],'Judge':[],'Audience':[]};
+var PREP_SEC=180;
 /* Token port */
 function utf8B(s){var u=unescape(encodeURIComponent(s)),b=[];for(var i=0;i<u.length;i++)b.push(u.charCodeAt(i));return b}
 function cat(a){var t=0;a.forEach(function(x){t+=x.length});var o=new Uint8Array(t),f=0;a.forEach(function(x){o.set(x,f);f+=x.length});return o}
@@ -173,13 +177,13 @@ async function mkToken(cn,uid){var ts=Math.floor(Date.now()/1000),exp=3600,salt=
 /* State */
 var params=new URLSearchParams(location.search);var channel=params.get('channel')||'pfdebate-default';var fbUrl=params.get('fbUrl')||'';
 var myRole=null,myUid=0,myName='',myAvatar='';var seats={},curPhase=1,desiredSub=new Set();
-var client=null,mic=null,cam=null,camEnabled=false;var timerEndsAt=0,timerRunning=false,timerDur=0,timerTick=null;var audioPoll=null;
+var client=null,mic=null,cam=null,camEnabled=false;var timerEndsAt=0,timerRunning=false,timerDur=0,timerRem=0,timerTick=null;var audioPoll=null;
 var perms={};
 var autoAdvance=false,autoAdvanced=false; // role → true/false (default true if not set)
-function canControl(){return perms[myRole]!==false}
+function canControl(){return myRole!==null&&myRole!=='Audience'&&perms[myRole]!==false}
 var fb=null,fm=null,fd=null;
 async function ensureFB(url){if(fd)return fd;var m=await Promise.all([import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')]);fm=m;fd=m[1].getDatabase(m[0].initializeApp({databaseURL:url}));return fd}
-function fr(p){return fm[1].ref(fd,p)}function fOn(r,cb){fm[1].onValue(r,cb)}function fSet(r,v){fm[1].set(r,v)}function fPush(r,v){fm[1].push(r,v)}function fTxn(r,fn){fm[1].runTransaction(r,fn)}
+var roomListeners=[];function fr(p){return fm[1].ref(fd,p)}function fOn(r,cb){var u=fm[1].onValue(r,cb);roomListeners.push(u);return u}function fSet(r,v){fm[1].set(r,v)}function fPush(r,v){fm[1].push(r,v)}function fTxn(r,fn){fm[1].runTransaction(r,fn)}
 /* Claim */
 var claimStep=0;
 function renderClaim(){
@@ -202,8 +206,14 @@ function renderClaim(){
   }
 }
 async function claimSeat(role){
-  if(seats[role]){$('claimStatus').textContent='席位 "'+role+'" 已被占用。点下方"重置席位"清掉旧数据再选。';$('claimStatus').className='cs err';return}
   myName=$('pfName').value.trim()||'Debater-'+Math.random().toString(36).slice(2,5);myAvatar=$('pfAvatar').value.trim();
+  if(role==='Audience'){
+    // Audience doesn't occupy a seat — multiple spectators allowed (H5). Random uid avoids Agora collision.
+    myRole='Audience';myUid=Math.floor(Math.random()*900000)+400000;
+    fPush(fr('rooms/'+channel+'/audience'),{uid:myUid,displayName:myName,avatar:myAvatar,ts:Date.now()});
+    startRoom();return;
+  }
+  if(seats[role]){$('claimStatus').textContent='席位 "'+role+'" 已被占用。点下方"重置席位"清掉旧数据再选。';$('claimStatus').className='cs err';return}
   var ok=false;
   try{await fTxn(fr('rooms/'+channel+'/seats/'+role),function(c){if(c===null){c={uid:UID[role]||Math.floor(Math.random()*900)+100,displayName:myName,avatar:myAvatar,claimedAt:Date.now()};ok=true;return c}return})}
   catch(e){$('claimStatus').textContent='Firebase 写入失败: '+e.message;$('claimStatus').className='cs err';return}
@@ -217,26 +227,29 @@ async function startRoom(){
   // ALL users can control (for testing — not just Judge)
   $('judgeCtrl').style.display='flex';
   renderSeats();$('stLine').textContent='加入音频…';
-  if(typeof AgoraRTC==='undefined'){$('stLine').textContent='Agora SDK 没加载';return}
+  // Firebase listeners first — work even if Agora SDK fails to load (H4)
+  fOn(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v&&typeof v==='number'){curPhase=v;enforcePhase(v);renderPhase()}});
+  fOn(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderSeats()});
+  fOn(fr('rooms/'+channel+'/timer'),function(s){var v=s.val();if(v){timerRunning=v.running;timerEndsAt=v.endsAt||0;timerDur=v.durationSec||0;timerRem=v.remainingSec||0;renderTimer()}});
+  fOn(fr('rooms/'+channel+'/chat'),function(s){renderChat(s.val()||{})});
+  fOn(fr('rooms/'+channel+'/topic'),function(s){var v=s.val();if(v)$('topicText').textContent=v});
+  fOn(fr('rooms/'+channel+'/permissions'),function(s){perms=s.val()||{};renderSeats()});
+  fOn(fr('rooms/'+channel+'/proPrep'),function(s){var v=s.val();if(v)proPrepState=v;renderPrep();if(client)enforcePhase(curPhase)});
+  fOn(fr('rooms/'+channel+'/conPrep'),function(s){var v=s.val();if(v)conPrepState=v;renderPrep();if(client)enforcePhase(curPhase)});
+  renderPrep();
+  // onDisconnect cleanup — release seat if this client drops without clicking leave (M1)
+  if(myRole&&myRole!=='Audience'){try{fm[1].onDisconnect(fr('rooms/'+channel+'/seats/'+myRole)).set(null)}catch(e){}}
+  if(myUid){try{fm[1].onDisconnect(fr('rooms/'+channel+'/roster/'+myUid)).set(null)}catch(e){}}
+  if(typeof AgoraRTC==='undefined'){$('stLine').textContent='Agora SDK 没加载 — 赛程/计时/聊天可用，无语音';return}
   try{
     client=AgoraRTC.createClient({mode:'rtc',codec:'vp8'});
     client.on('user-published',onPub);client.on('user-unpublished',onUnpub);client.on('user-left',function(){renderSeats()});
+    client.on('token-privilege-will-expire',async function(){try{await client.renewToken(await mkToken(channel,myUid))}catch(e){}});
     var token=await mkToken(channel,myUid);await client.join(APP_ID,channel,token,myUid);
     mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);mic.setMuted(true);
     $('stLine').textContent='已加入 ✓';$('stLine').className='st ok';
     enforcePhase(curPhase);startAudioPoll();
   }catch(e){$('stLine').textContent='加入失败: '+e.message;$('stLine').className='st err'}
-  fOn(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v&&typeof v==='number'){curPhase=v;enforcePhase(v);renderPhase()}});
-  fOn(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderSeats()});
-  fOn(fr('rooms/'+channel+'/timer'),function(s){var v=s.val();if(v){timerRunning=v.running;timerEndsAt=v.endsAt||0;timerDur=v.durationSec||0;renderTimer()}});
-  fOn(fr('rooms/'+channel+'/chat'),function(s){renderChat(s.val()||{})});
-  fOn(fr('rooms/'+channel+'/topic'),function(s){var v=s.val();if(v)$('topicText').textContent=v});
-  fOn(fr('rooms/'+channel+'/permissions'),function(s){perms=s.val()||{};renderSeats()});
-  // per-team prep timers
-  fOn(fr('rooms/'+channel+'/proPrep'),function(s){var v=s.val();if(v){if(v.running&&v.endsAt){var rem=Math.max(0,Math.round((v.endsAt-Date.now())/1000));proPrepRem=v.remaining||rem;$('proPrep').textContent='Prep: '+fmt(rem);if(rem<=0){proPrepRem=0;$('proPrep').textContent='Prep: 0:00';fSet(fr('rooms/'+channel+'/proPrep'),{running:false})}}else{$('proPrep').textContent='Prep: '+fmt(v.remaining||proPrepRem)}}});
-  fOn(fr('rooms/'+channel+'/conPrep'),function(s){var v=s.val();if(v){if(v.running&&v.endsAt){var rem=Math.max(0,Math.round((v.endsAt-Date.now())/1000));conPrepRem=v.remaining||rem;$('conPrep').textContent='Prep: '+fmt(rem);if(rem<=0){conPrepRem=0;$('conPrep').textContent='Prep: 0:00';fSet(fr('rooms/'+channel+'/conPrep'),{running:false})}}else{$('conPrep').textContent='Prep: '+fmt(v.remaining||conPrepRem)}}});
-  // swap requests
-  fOn(fr('rooms/'+channel+'/swapReqs'),function(s){handleSwapReqs(s.val()||{})});
 }
 /* Agora events */
 function roleOf(uid){return ROLE_OF[uid]||(uid>=401?'Audience':'?')}
@@ -249,7 +262,7 @@ function onUnpub(user,mt){if(mt==='video'){var r=roleOf(user.uid);var box=$('av-
 async function enforcePhase(phase){
   var rule=PHASES.find(function(p){return p.n===phase})||PHASES[0];
   // mic is USER-CONTROLLED — not auto-muted by phase. Privacy = selective subscribe.
-  var sr=rule.sub[myRole]||[];desiredSub=new Set();
+  var prepOn=(myRole&&(myRole.indexOf('Pro')===0)&&proPrepState&&proPrepState.running)||(myRole&&(myRole.indexOf('Con')===0)&&conPrepState&&conPrepState.running);var sr=prepOn?(PREP_SUB[myRole]||[]):rule.sub[myRole]||[];desiredSub=new Set();
   if(sr==='all'){if(client)for(var j=0;j<client.remoteUsers.length;j++){if(client.remoteUsers[j].hasAudio){var rr=roleOf(client.remoteUsers[j].uid);if(rr!==myRole)desiredSub.add(rr)}}}
   else if(Array.isArray(sr))sr.forEach(function(r){desiredSub.add(r)});
   if(client){for(var i=0;i<client.remoteUsers.length;i++){var u=client.remoteUsers[i];if(!u.hasAudio)continue;var r=roleOf(u.uid);var want=desiredSub.has(r);var has=!!u.audioTrack;if(want&&!has){try{var t=await client.subscribe(u,'audio');t.play()}catch(e){}}else if(!want&&has){try{await client.unsubscribe(u,'audio')}catch(e){}}}}
@@ -257,7 +270,8 @@ async function enforcePhase(phase){
   autoAdvanced=false; // reset auto-advance flag on phase change
 }
 function renderPhase(){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
-  $('nowSpeaking').textContent='当前: '+rule.name;$('nextUp').textContent='开麦: '+rule.pub.join(', ')}
+  $('nowSpeaking').textContent='当前: '+rule.name;$('nextUp').textContent='开麦: '+rule.pub.join(', ');renderPhaseSeq()}
+function renderPhaseSeq(){var box=$('phaseSeq');if(!box)return;box.innerHTML='';PHASES.forEach(function(p){var d=document.createElement('div');d.textContent=p.n+'. '+p.name+' ('+fmt(p.sec)+')';if(p.n===curPhase){d.style.color='#2563eb';d.style.fontWeight='600'}else if(p.n<curPhase){d.style.color='#bbb'}box.appendChild(d)})}
 function renderSeats(){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
   ['Pro-1','Pro-2','Con-1','Con-2','Judge'].forEach(function(r){
     var occ=seats[r];var live=rule.pub.includes(r);
@@ -279,13 +293,16 @@ function renderPermBtns(){
   });
 }
 function renderTimer(){var box=$('timerNum');var fill=$('progFill');
-  function tick(){if(!timerRunning||!timerEndsAt){box.textContent='--:--';box.className='timer-num';fill.style.width='0%';return}
-    var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));
+  function tick(){
+    var rem;
+    if(timerRunning&&timerEndsAt){rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000))}
+    else if(timerDur>0){rem=timerRem}
+    else{box.textContent='--:--';box.className='timer-num';fill.style.width='0%';return}
     var m=Math.floor(rem/60),x=rem%60;box.textContent=(m<10?'0':'')+m+':'+(x<10?'0':'')+x;
     box.className='timer-num'+(rem<=30?' warn':'')+(rem<=0?' done':'');
     var pct=timerDur>0?(rem/timerDur*100):0;fill.style.width=pct+'%';
     fill.className='progress-fill'+(rem<=30?' warn':'')+(rem<=0?' done':'');
-    if(rem<=0&&autoAdvance&&!autoAdvanced){autoAdvanced=true;var next=Math.min(12,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),next);var r=PHASES.find(function(p){return p.n===next});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec})}}
+    if(rem<=0&&autoAdvance&&!autoAdvanced){autoAdvanced=true;if(curPhase>=11){fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:PHASES.find(function(p){return p.n===11}).sec,remainingSec:0});return}var next=Math.min(11,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),next);var r=PHASES.find(function(p){return p.n===next});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec,remainingSec:r.sec})}}
   if(timerTick)clearInterval(timerTick);tick();if(timerRunning)timerTick=setInterval(tick,1000)}
 $('autoAdvBtn').onclick=function(){autoAdvance=!autoAdvance;$('autoAdvBtn').style.background=autoAdvance?'#22c55e':'#1a1a2e';$('autoAdvBtn').textContent=autoAdvance?'🔗 ✓':'🔗 连续'};
 function renderChat(msgs){var l=$('chatList');l.innerHTML='';var keys=Object.keys(msgs).sort();
@@ -305,50 +322,55 @@ function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInt
 function rule_pub_has(role){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];return rule.pub.includes(role)}
 /* Judge controls — check permission */
 function needPerm(fn){return function(){if(!canControl()){$('stLine').textContent='没有操控权限（主持人没给你）';return}fn()}}
-$('phNext').onclick=needPerm(function(){var n=Math.min(12,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),n);var r=PHASES.find(function(p){return p.n===n});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
+$('phNext').onclick=needPerm(function(){var n=Math.min(11,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),n);var r=PHASES.find(function(p){return p.n===n});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec,remainingSec:r.sec})});
 $('phPrev').onclick=needPerm(function(){fSet(fr('rooms/'+channel+'/phase'),Math.max(1,curPhase-1))});
-$('tStart').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec})});
-$('tPause').onclick=needPerm(function(){if(timerEndsAt){var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:rem})}});
-$('tReset').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
+$('tStart').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];if(timerRunning)return;var rem=timerRem>0?timerRem:r.sec;fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+rem*1000,durationSec:r.sec,remainingSec:rem})});
+$('tPause').onclick=needPerm(function(){if(timerEndsAt){var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec,remainingSec:rem})}});
+$('tReset').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec,remainingSec:r.sec})});
 $('topicInput').onchange=needPerm(function(){fSet(fr('rooms/'+channel+'/topic'),$('topicInput').value)});
-/* Prep button — jumps to phase 12 (team-private audio, video still visible to all) */
-$('prepBtn').onclick=needPerm(function(){fSet(fr('rooms/'+channel+'/phase'),12);var r=PHASES.find(function(p){return p.n===12});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
 /* Pro/Con team prep — independent per-team 3:00 timers that accumulate (resume from remaining) */
-var proPrepRem=180,conPrepRem=180,prepTick=null,prepRunning=null;
-function startPrepCountdown(team){
+/* Prep timers — per-team 3:00 cumulative, synced via endsAt (same mechanism as
+   the main debate timer). Each client computes remaining locally from the
+   shared endsAt, so everyone's display counts down in sync — fixing the old
+   bug where only the operator's side ticked (setInterval+remaining) and every
+   other viewer's display froze. */
+function fmt(s){var m=Math.floor(s/60),x=s%60;return(m<10?'0':'')+m+':'+(x<10?'0':'')+x}
+var proPrepState={running:false,endsAt:0,durationSec:PREP_SEC,remaining:PREP_SEC},conPrepState={running:false,endsAt:0,durationSec:PREP_SEC,remaining:PREP_SEC};
+var proPrepRem=PREP_SEC,conPrepRem=PREP_SEC,prepTick=null;
+function renderPrep(){
   if(prepTick)clearInterval(prepTick);
-  prepRunning=team;
-  prepTick=setInterval(function(){
-    if(team==='pro'){proPrepRem=Math.max(0,proPrepRem-1);$('proPrep').textContent='Prep: '+fmt(proPrepRem);if(proPrepRem<=0){stopPrepCountdown();fSet(fr('rooms/'+channel+'/proPrep'),{remaining:0,running:false})}else{fSet(fr('rooms/'+channel+'/proPrep'),{remaining:proPrepRem,running:true})}}
-    else{conPrepRem=Math.max(0,conPrepRem-1);$('conPrep').textContent='Prep: '+fmt(conPrepRem);if(conPrepRem<=0){stopPrepCountdown();fSet(fr('rooms/'+channel+'/conPrep'),{remaining:0,running:false})}else{fSet(fr('rooms/'+channel+'/conPrep'),{remaining:conPrepRem,running:true})}}
-  },1000);
-}
-function stopPrepCountdown(){
-  if(prepTick){clearInterval(prepTick);prepTick=null;
-  if(prepRunning==='pro'){fSet(fr('rooms/'+channel+'/proPrep'),{remaining:proPrepRem,running:false});}
-  else if(prepRunning==='con'){fSet(fr('rooms/'+channel+'/conPrep'),{remaining:conPrepRem,running:false});}
-  prepRunning=null;}
+  function tick(){
+    var pr,cr;
+    if(proPrepState.running&&proPrepState.endsAt){pr=Math.max(0,Math.round((proPrepState.endsAt-Date.now())/1000));if(pr<=0){proPrepState={running:false,endsAt:0,durationSec:PREP_SEC,remaining:0};fSet(fr('rooms/'+channel+'/proPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:0})}}
+    else{pr=proPrepState.remaining||0}
+    proPrepRem=pr;$('proPrep').textContent='Prep: '+fmt(pr);
+    if(conPrepState.running&&conPrepState.endsAt){cr=Math.max(0,Math.round((conPrepState.endsAt-Date.now())/1000));if(cr<=0){conPrepState={running:false,endsAt:0,durationSec:PREP_SEC,remaining:0};fSet(fr('rooms/'+channel+'/conPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:0})}}
+    else{cr=conPrepState.remaining||0}
+    conPrepRem=cr;$('conPrep').textContent='Prep: '+fmt(cr);
+  }
+  tick();prepTick=setInterval(tick,500);
 }
 $('proPrepBtn').onclick=needPerm(function(){
   if(proPrepRem<=0)return;
-  stopPrepCountdown();
-  fSet(fr('rooms/'+channel+'/phase'),12);
-  startPrepCountdown('pro');
-  $('stLine').textContent='正方 Prep 已开始 — '+fmt(proPrepRem)+' remaining';
+  var rem=proPrepRem;
+  fSet(fr('rooms/'+channel+'/proPrep'),{running:true,endsAt:Date.now()+rem*1000,durationSec:PREP_SEC,remaining:rem});
+  $('stLine').textContent='正方 Prep 已开始 — '+fmt(rem)+' remaining';
 });
 $('conPrepBtn').onclick=needPerm(function(){
   if(conPrepRem<=0)return;
-  stopPrepCountdown();
-  fSet(fr('rooms/'+channel+'/phase'),12);
-  startPrepCountdown('con');
-  $('stLine').textContent='反方 Prep 已开始 — '+fmt(conPrepRem)+' remaining';
+  var rem=conPrepRem;
+  fSet(fr('rooms/'+channel+'/conPrep'),{running:true,endsAt:Date.now()+rem*1000,durationSec:PREP_SEC,remaining:rem});
+  $('stLine').textContent='反方 Prep 已开始 — '+fmt(rem)+' remaining';
 });
-$('stopPrepBtn').onclick=function(){
-  stopPrepCountdown();
+$('stopPrepBtn').onclick=needPerm(function(){
+  /* stop whichever prep is running, freeze remaining at the current countdown */
+  if(proPrepState.running){var rem=Math.max(0,Math.round((proPrepState.endsAt-Date.now())/1000));proPrepRem=rem;fSet(fr('rooms/'+channel+'/proPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:rem})}
+  if(conPrepState.running){var rem=Math.max(0,Math.round((conPrepState.endsAt-Date.now())/1000));conPrepRem=rem;fSet(fr('rooms/'+channel+'/conPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:rem})}
   $('stLine').textContent='Prep 已停止 — 正方剩余 '+fmt(proPrepRem)+' 反方剩余 '+fmt(conPrepRem);
-};
+});
 /* Simulate 4 debaters — fills seats with mock data so Judge can see the full room */
 $('simBtn').onclick=function(){
+  if(seats['Pro-1']||seats['Pro-2']||seats['Con-1']||seats['Con-2']){if(!confirm('已有真实辩手入座，模拟会覆盖其席位数据，确定？'))return}
   [['Pro-1',101,'张三'],['Pro-2',102,'李四'],['Con-1',201,'王五'],['Con-2',202,'赵六']].forEach(function(d){
     fSet(fr('rooms/'+channel+'/seats/'+d[0]),{uid:d[1],displayName:d[2]+'(模拟)',avatar:'',claimedAt:Date.now()});
     fSet(fr('rooms/'+channel+'/roster/'+d[1]),d[0]);
@@ -362,59 +384,27 @@ function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput'
 /* Mic/Cam/Leave */
 $('micBtn').onclick=function(){if(!mic)return;var m=!mic.muted;mic.setMuted(m);$('micBtn').textContent=m?'🎤 静音':'🎤 开麦'};
 $('camBtn').onclick=async function(){if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=false}catch(e){return}}camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';if(camEnabled){var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)}}else{var box2=$('av-'+myRole);if(box2){var occ=seats[myRole];if(occ)setAvatar(myRole,occ.avatar,occ.displayName);else box2.textContent=myRole==='Judge'?'J':myRole.slice(-1)}}enforcePhase(curPhase)};
-$('leaveBtn').onclick=function(){try{if(mic)mic.close()}catch(e){}try{if(cam)cam.close()}catch(e){}try{if(client)client.leave()}catch(e){}if(myRole)fSet(fr('rooms/'+channel+'/seats/'+myRole),null);if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);window.close()};
+$('leaveBtn').onclick=function(){try{if(mic)mic.close()}catch(e){}try{if(cam)cam.close()}catch(e){}try{if(client)client.leave()}catch(e){}if(myRole&&myRole!=='Audience')fSet(fr('rooms/'+channel+'/seats/'+myRole),null);if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);$('stLine').textContent='已离开房间 — 可手动关闭此页面';$('stLine').className='st ok'};
 /* Switch seat — release current seat, go back to claim screen */
 $('switchBtn').onclick=async function(){
   try{if(mic)mic.close()}catch(e){}
   try{if(cam)cam.close()}catch(e){}
   try{if(client)await client.leave()}catch(e){}
-  if(myRole)fSet(fr('rooms/'+channel+'/seats/'+myRole),null);
+  if(myRole&&myRole!=='Audience')fSet(fr('rooms/'+channel+'/seats/'+myRole),null);
   if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);
+  roomListeners.forEach(function(u){try{u()}catch(e){}});roomListeners=[];
   myRole=null;myUid=0;mic=null;cam=null;client=null;
   if(audioPoll)clearInterval(audioPoll);
+  if(timerTick)clearInterval(timerTick);
+  if(prepTick)clearInterval(prepTick);
   $('room').style.display='none';
   $('claim').style.display='flex';
   $('claimStatus').textContent='换座位 — 重新选择';
   renderClaim();
 };
-/* Swap request — request to swap positions with another occupied seat */
-function requestSwap(targetRole){
-  if(targetRole===myRole)return;
-  fSet(fr('rooms/'+channel+'/swapReqs/'+myRole+'_'+targetRole),{from:myRole,to:targetRole,fromUid:myUid,status:'pending',ts:Date.now()});
-  $('stLine').textContent='已向 '+targetRole+' 发送换位请求，等对方确认';
-}
-function handleSwapReqs(reqs){
-  for(var key in reqs){
-    var req=reqs[key];
-    if(req.status==='pending' && req.to===myRole){
-      $('stLine').innerHTML=''+req.from+' 请求与你换位。<button onclick="acceptSwap(\''+key+'\')" style="background:#22c55e;color:#fff;border:0;border-radius:4px;padding:4px 10px;margin-left:6px;cursor:pointer">接受</button><button onclick="rejectSwap(\''+key+'\')" style="background:#dc2626;color:#fff;border:0;border-radius:4px;padding:4px 10px;margin-left:4px;cursor:pointer">拒绝</button>';
-      return;
-    }
-  }
-  // no pending requests for me
-}
-function acceptSwap(key){
-  var req={}; /* fetch done in the callback */
-  fOn(fr('rooms/'+channel+'/swapReqs/'+key),function(s){var v=s.val();if(!v)return;
-    // swap seats in Firebase
-    var fromRole=v.from,toRole=v.to;
-    var fromOcc=seats[fromRole],toOcc=seats[toRole];
-    if(fromOcc&&toOcc){
-      fSet(fr('rooms/'+channel+'/seats/'+fromRole),{uid:toOcc.uid,displayName:toOcc.displayName,avatar:toOcc.avatar,claimedAt:toOcc.claimedAt});
-      fSet(fr('rooms/'+channel+'/seats/'+toRole),{uid:fromOcc.uid,displayName:fromOcc.displayName,avatar:fromOcc.avatar,claimedAt:fromOcc.claimedAt});
-    }
-    fSet(fr('rooms/'+channel+'/roster/'+v.fromUid),toRole);
-    fSet(fr('rooms/'+channel+'/roster/'+myUid),fromRole);
-    fSet(fr('rooms/'+channel+'/swapReqs/'+key),{status:'accepted',ts:Date.now()});
-    myRole=toRole;myUid=UID[toRole]||myUid;
-    $('stLine').textContent='换位成功 ✓ 你现在是 '+toRole;
-    $('stLine').className='st ok';
-  });
-}
-function rejectSwap(key){
-  fSet(fr('rooms/'+channel+'/swapReqs/'+key),{status:'rejected',ts:Date.now()});
-  $('stLine').textContent='已拒绝换位请求';
-}
+/* Swap-request feature removed (was dead code — requestSwap had no UI binding, acceptSwap had a
+   Firebase write loop via a persistent onValue listener). NSDA seats are fixed by role; use the
+   "换座位" button above to release a seat and re-claim instead of swapping. */
 /* Reset seats */
 $('resetBtn').onclick=function(){if(!fd){$('claimStatus').textContent='Firebase 没连';return}fSet(fr('rooms/'+channel+'/seats'),null);fSet(fr('rooms/'+channel+'/roster'),null);seats={};$('claimStatus').textContent='席位已重置 ✓';$('claimStatus').className='cs'};
 /* Init */
@@ -426,8 +416,8 @@ async function init(){var cs=$('claimStatus');
   cs.textContent='连接 Firebase…';
   try{await ensureFB(fbUrl)}catch(e){cs.textContent='Firebase 失败: '+e.message;cs.className='cs err';$('fbFallback').style.display='block';return}
   cs.textContent='Firebase 已连 ✓ — 填名字选阵营';cs.className='cs';
-  fOn(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaim()});
-  fOn(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v)curPhase=v});
+  fm[1].onValue(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaim()});
+  fm[1].onValue(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v)curPhase=v});
 }
 init();
 </script>

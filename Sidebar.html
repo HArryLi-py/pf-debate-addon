@@ -148,13 +148,13 @@
     <button id="debReset">Reset</button>
   </div>
   <div class="presets" id="debPresets"></div>
-  <div class="hint">本地计时（Phase 1，不同步）。Phase 2 用 Firebase 同步给所有辩手。</div>
+  <div class="hint">本地计时（赛前准备/练习用，不同步）。真实比赛的同步计时器在语音房里。</div>
 
   <hr>
 
-  <h4>聊天 + 赛程</h4>
-  <div class="row"><button class="primary" id="chatDialogBtn">💬 打开聊天 + 赛程窗口</button></div>
-  <div class="hint">弹出独立窗口：微信样式聊天 + NSDA 赛程状态，所有辩手同步。</div>
+  <h4>聊天</h4>
+  <div class="row"><button class="primary" id="chatDialogBtn">💬 打开聊天窗口</button></div>
+  <div class="hint">弹出独立窗口：微信样式聊天，跟共同编辑 Doc 的人交流。赛程/计时在语音房里。</div>
 
   <hr>
 
@@ -300,16 +300,6 @@
         return fbDb;
       });
     }
-    function connectSync(url){
-      ensureFirebase(url).then(function(db){
-        var mod = fbMods[1];
-        google.script.run.withSuccessHandler(function(rid){
-          prepTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/prep');
-          debTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/deb');
-          setFbResult('✓ 计时器同步已启用（round: '+rid+'）', 'ok');
-        }).getRoundId();
-      }).catch(function(e){ setFbResult('同步连接失败：'+e.message, 'err'); });
-    }
     function testFirebase(){
       var dbUrl = $('fbUrl').value.trim();
       if (!dbUrl){ setFbResult('先填 databaseURL', 'err'); return; }
@@ -328,7 +318,7 @@
           var transport = window._fbWsSeen ? 'websocket ✓' : 'long-polling';
           setFbResult('已写入测试值。传输：' + transport, window._fbWsSeen ? 'ok' : 'warn');
           if (window._fbWsSeen){
-            google.script.run.withSuccessHandler(function(){ connectSync(dbUrl); }).setFbUrl(dbUrl);
+            google.script.run.setFbUrl(dbUrl);
           }
         }).catch(function(e){ setFbResult('写入失败：' + e.message, 'err'); });
       }).catch(function(e){ setFbResult('SDK 加载失败：' + e.message, 'err'); });
@@ -338,16 +328,20 @@
     // chat dialog button
     $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
 
-    // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
+    // on load: pre-fill saved Firebase URL (sync timing removed — sidebar timer is local-only now)
     google.script.run.withSuccessHandler(function(url){
-      if (url){ $('fbUrl').value = url; connectSync(url); }
+      if (url){ $('fbUrl').value = url; }
     }).getFbUrl();
 
-    // Phase 3: set the audio room link href (just sets href, no complex JS)
+    // Phase 3: set the audio room link href (channel from round ID + fbUrl from saved Firebase URL)
     var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?v=' + Date.now() + '&channel=pfdebate-';
     $('audioLink').href = AUDIO_PAGE + 'default';
     google.script.run.withSuccessHandler(function(rid){
-      $('audioLink').href = AUDIO_PAGE + rid;
+      google.script.run.withSuccessHandler(function(fb){
+        var href = AUDIO_PAGE + rid;
+        if (fb){ href += '&fbUrl=' + encodeURIComponent(fb); }
+        $('audioLink').href = href;
+      }).getFbUrl();
     }).getRoundId();
   </script>
 </body>
