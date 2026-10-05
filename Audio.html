@@ -37,6 +37,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 /* Avatar */
 .avatar{width:64px;height:64px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:3px solid transparent;transition:.3s}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar video{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar.speaking{border-color:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.5)}
 .avatar.muted{opacity:.4}
 .avatar.judge{width:48px;height:48px;font-size:18px;background:#f59e0b}
@@ -293,7 +294,7 @@ function renderChat(msgs){var l=$('chatList');l.innerHTML='';var keys=Object.key
     l.appendChild(d)});l.scrollTop=l.scrollHeight}
 function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInterval(function(){
   // local mic — always poll (even if muted, getVolumeLevel may still show capture)
-  if(mic){var l=mic.getVolumeLevel();var b=$('bar-'+myRole);if(b)b.style.width=Math.min(100,l*500)+'%';
+  if(mic){var l=mic.getVolumeLevel();var b=$('bar-'+myRole);if(b){var pct=Math.min(100,l*1000);b.style.width=pct+'%';b.style.background=pct>5?'#22c55e':'#e0e0e0'}
     // pulse avatar when actually speaking
     var av=$('av-'+myRole);if(av){if(l>0.03&&!mic.muted){av.classList.add('speaking')}else if(!rule_pub_has(myRole)){av.classList.remove('speaking')}}}
   // remote
