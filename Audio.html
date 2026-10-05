@@ -110,6 +110,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
       <div class="next-up" id="nextUp"></div>
       <div class="judge-ctrl" id="judgeCtrl">
         <button id="phPrev">←</button><button id="phNext">→</button>
+        <button id="prepBtn">⏱ Prep</button>
         <button id="tStart">▶</button><button id="tPause">⏸</button><button id="tReset">↺</button>
       </div>
       <input id="topicInput" placeholder="辩题（所有人可设置）" style="width:260px;border:1px solid #d0d4e0;border-radius:6px;padding:4px 8px;font-size:12px;margin-top:4px">
@@ -132,6 +133,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
     <button id="micBtn">🎤 静音</button>
     <button id="camBtn">📹 摄像</button>
     <button id="switchBtn">🔄 换座位</button>
+    <button id="simBtn">👥 模拟4人</button>
     <button id="leaveBtn">离开</button>
     <div class="st" id="stLine">Ready</div>
   </div>
@@ -221,7 +223,10 @@ async function startRoom(){
 }
 /* Agora events */
 function roleOf(uid){return ROLE_OF[uid]||(uid>=401?'Audience':'?')}
-function onPub(user,mt){if(mt!=='audio'&&mt!=='video')return;var r=roleOf(user.uid);if(desiredSub.has(r)){client.subscribe(user,mt).then(function(t){if(mt==='audio')t.play();else if(mt==='video'){var box=$('av-'+r);if(box){box.innerHTML='';t.play(box)}}}).catch(function(){})}}
+function onPub(user,mt){
+  if(mt==='audio'){var r=roleOf(user.uid);if(desiredSub.has(r)){client.subscribe(user,'audio').then(function(t){t.play()}).catch(function(){})}}
+  else if(mt==='video'){var r=roleOf(user.uid);client.subscribe(user,'video').then(function(t){var box=$('av-'+r);if(box){box.innerHTML='';t.play(box)}}).catch(function(){})}
+}
 function onUnpub(user,mt){if(mt==='video'){var r=roleOf(user.uid);var box=$('av-'+r);if(box){var occ=seats[r];if(occ)setAvatar(r,occ.avatar,occ.displayName);else box.textContent=r==='Judge'?'J':r.slice(-1)}}}
 /* Phase enforcement */
 async function enforcePhase(phase){
@@ -233,11 +238,7 @@ async function enforcePhase(phase){
   var sr=rule.sub[myRole]||[];desiredSub=new Set();
   if(sr==='all')rule.pub.forEach(function(r){if(r!==myRole)desiredSub.add(r)});
   else if(Array.isArray(sr))sr.forEach(function(r){desiredSub.add(r)});
-  if(client){for(var i=0;i<client.remoteUsers.length;i++){var u=client.remoteUsers[i];if(!u.hasAudio)continue;var r=roleOf(u.uid);var want=desiredSub.has(r);var has=!!u.audioTrack;if(want&&!has){try{var t=await client.subscribe(u,'audio');t.play()}catch(e){}}else if(!want&&has){try{await client.unsubscribe(u,'audio')}catch(e){}}
-    // video subscribe/unsubscribe
-    if(want&&u.hasVideo&&!u.videoTrack){try{var vt=await client.subscribe(u,'video');var vBox=$('av-'+r);if(vBox){vBox.innerHTML='';vt.play(vBox)}}catch(e){}}
-    else if(!want&&u.videoTrack){try{await client.unsubscribe(u,'video');var vBox2=$('av-'+r);if(vBox2){var occ=seats[r];if(occ)setAvatar(r,occ.avatar,occ.displayName);else vBox2.textContent=r==='Judge'?'J':r.slice(-1)}}catch(e){}}
-  }}
+  if(client){for(var i=0;i<client.remoteUsers.length;i++){var u=client.remoteUsers[i];if(!u.hasAudio)continue;var r=roleOf(u.uid);var want=desiredSub.has(r);var has=!!u.audioTrack;if(want&&!has){try{var t=await client.subscribe(u,'audio');t.play()}catch(e){}}else if(!want&&has){try{await client.unsubscribe(u,'audio')}catch(e){}}}}
   renderPhase();renderSeats();
 }
 /* UI */
@@ -294,6 +295,17 @@ $('tStart').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n
 $('tPause').onclick=needPerm(function(){if(timerEndsAt){var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:rem})}});
 $('tReset').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
 $('topicInput').onchange=needPerm(function(){fSet(fr('rooms/'+channel+'/topic'),$('topicInput').value)});
+/* Prep button — jumps to phase 12 (team-private audio, video still visible to all) */
+$('prepBtn').onclick=needPerm(function(){fSet(fr('rooms/'+channel+'/phase'),12);var r=PHASES.find(function(p){return p.n===12});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
+/* Simulate 4 debaters — fills seats with mock data so Judge can see the full room */
+$('simBtn').onclick=function(){
+  [['Pro-1',101,'张三'],['Pro-2',102,'李四'],['Con-1',201,'王五'],['Con-2',202,'赵六']].forEach(function(d){
+    fSet(fr('rooms/'+channel+'/seats/'+d[0]),{uid:d[1],displayName:d[2]+'(模拟)',avatar:'',claimedAt:Date.now()});
+    fSet(fr('rooms/'+channel+'/roster/'+d[1]),d[0]);
+  });
+  $('stLine').textContent='已模拟4人 ✓ — 正方: 张三(一辩) 李四(二辩) / 反方: 王五(一辩) 赵六(二辩)';
+  $('stLine').className='st ok';
+};
 /* Chat */
 $('chatBtn').onclick=sendChat;$('chatInput').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();sendChat()}};
 function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput').value='';fPush(fr('rooms/'+channel+'/chat'),{uid:myUid,displayName:myName,text:t,ts:Date.now()})}
