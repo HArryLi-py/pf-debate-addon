@@ -181,24 +181,6 @@
   <div class="fb-result" id="fbResult">填入 databaseURL 后点测试。需要先在 Firebase 建个 Realtime Database 项目（见下方步骤）。</div>
   <div class="hint">这是 Phase 2 多人同步的前置验证（集成了当初的 spike）。显示 "websocket ✓" 就能做跨辩手同步计时器/chat。</div>
 
-  <hr>
-
-  <div class="row"><button id="settingsBtn">⚙️ 设置</button></div>
-  <div id="settingsPanel" style="display:none;padding:10px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);margin:8px 0">
-    <h4 style="margin-top:0">设置</h4>
-    <label>Evidence card 位置</label>
-    <select id="setCardDest" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;font:inherit">
-      <option value="tab">新建标签页 (evidence cards)</option>
-      <option value="append">本文档底部</option>
-    </select>
-    <label style="margin-top:8px">语言</label>
-    <select id="setLang" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;font:inherit">
-      <option value="zh">中文</option>
-      <option value="en">English</option>
-    </select>
-    <div class="row"><button class="primary" id="saveSettingsBtn">保存设置</button></div>
-  </div>
-
   <script>
     var $ = function(id){ return document.getElementById(id); };
     var status = $('status');
@@ -406,24 +388,6 @@
     google.script.run.withSuccessHandler(function(url){
       if (url){ $('fbUrl').value = url; connectSync(url); }
     }).getFbUrl();
-
-    /* ---- Settings ---- */
-    $('settingsBtn').addEventListener('click', function(){
-      var p = $('settingsPanel');
-      p.style.display = p.style.display === 'none' ? 'block' : 'none';
-    });
-    // load settings on sidebar open
-    google.script.run.withSuccessHandler(function(s){
-      if(s){ $('setCardDest').value = s.cardDestination || 'tab'; $('setLang').value = s.language || 'zh'; }
-    }).getSettings();
-    // save settings
-    $('saveSettingsBtn').addEventListener('click', function(){
-      var settings = { cardDestination: $('setCardDest').value, language: $('setLang').value };
-      google.script.run.withSuccessHandler(function(){
-        setStatus('设置已保存 ✓', 'ok');
-        setTimeout(function(){ $('settingsPanel').style.display = 'none'; }, 1000);
-      }).withFailureHandler(function(e){ setStatus('设置保存失败: '+e.message, 'err'); }).setSettings(settings);
-    });
   </script>
 </body>
 </html>
