@@ -121,6 +121,10 @@ function setMyName(name) {
   return 'saved';
 }
 
+var MY_AVATAR_KEY = 'pf_my_avatar';
+function getMyAvatar() { return PropertiesService.getUserProperties().getProperty(MY_AVATAR_KEY) || ''; }
+function setMyAvatar(url) { PropertiesService.getUserProperties().setProperty(MY_AVATAR_KEY, url || ''); return 'saved'; }
+
 /* ====================== BUTTON 1: TITLE (选中→标题) ======================
    Whole paragraph → centered + 27pt + bold + underline. Handles Paragraph and
    ListItem; falls back to cursor's paragraph. Styles both the selection runs
