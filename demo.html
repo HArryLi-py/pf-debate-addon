@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PF Debate 辩论房间 — Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--pro:#2563eb;--con:#dc2626;--judge:#ffc107;--bg:#0d1a2e;--bg2:#15243c;--bg3:#1d3050;--fg:#e9eef7;--muted:#94a8c6;--ok:#1b873f;--err:#e57b7b}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:13px;color:var(--fg);background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.header{background:var(--bg2);padding:8px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(149,173,214,.15)}
+.header .phase{flex:1;font-size:14px;font-weight:600;color:var(--pro)}
+.header .timer{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--bg3);padding:4px 16px;border-radius:8px;min-width:100px;text-align:center;color:var(--ok)}
+.judge-ctrl{display:flex;gap:4px}
+.judge-ctrl button{background:var(--bg3);color:var(--fg);border:1px solid rgba(149,173,214,.2);border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer}
+.main{flex:1;display:flex;overflow:hidden}
+.col{flex:1;padding:10px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.col-center{flex:0 0 240px;text-align:center;padding:10px}
+.col-center .phase-card{background:var(--bg2);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:10px}
+.col-center .phase-card h3{font-size:15px;color:var(--pro);margin-bottom:4px}
+.col-center .phase-card p{font-size:11px;color:var(--muted)}
+.col-center .speaking{font-size:11px;color:var(--ok);margin-top:6px}
+.seat{background:var(--bg2);border:1px solid rgba(149,173,214,.12);border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;min-height:56px}
+.seat.pro{border-color:rgba(37,99,235,.2)}.seat.con{border-color:rgba(220,38,38,.2)}.seat.judge{border-color:rgba(255,193,7,.2)}
+.video-box{width:48px;height:48px;border-radius:6px;background:#0a1525;flex-shrink:0;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;font-size:20px}
+.seat-info{flex:1;min-width:0}
+.seat-role{font-size:10px;color:var(--muted)}.seat-name{font-size:13px;font-weight:600}
+.seat-dot{width:7px;height:7px;border-radius:50%;background:#333;flex-shrink:0}
+.seat-dot.live{background:var(--ok);animation:blink 1.5s infinite}@keyframes blink{50%{opacity:.4}}
+.col-center .audience-box{background:var(--bg2);border-radius:8px;padding:8px;font-size:11px;color:var(--muted)}
+.chat{width:220px;background:var(--bg);border-left:1px solid rgba(149,173,214,.1);display:flex;flex-direction:column}
+.chat-head{padding:6px 10px;font-size:11px;color:var(--muted);border-bottom:1px solid rgba(149,173,214,.08)}
+.chat-list{flex:1;overflow-y:auto;padding:6px 10px}
+.chat-msg{font-size:12px;margin:3px 0;line-height:1.4}.chat-msg b{color:var(--pro);margin-right:3px}.chat-msg.me b{color:var(--ok)}
+.chat-msg.sys{color:var(--muted);font-size:11px;font-style:italic}
+.chat-input{display:flex;gap:4px;padding:6px}
+.chat-input input{flex:1;background:var(--bg2);border:1px solid rgba(149,173,214,.12);border-radius:4px;padding:5px 7px;color:var(--fg);font-size:12px}
+.chat-input button{background:var(--pro);color:#fff;border:0;border-radius:4px;padding:5px 8px;font-size:12px;cursor:pointer}
+.footer{background:var(--bg2);padding:6px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(149,173,214,.15)}
+.footer button{background:var(--bg3);color:var(--fg);border:1px solid rgba(149,173,214,.15);border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer}
+.footer .st{flex:1;font-size:11px;color:var(--ok)}
+.note{position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,.8);color:#888;font-size:10px;padding:4px 8px;border-radius:4px;z-index:99}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="phase">📋 Pro Constructive — 正方一辩发言中</div>
+  <div class="timer" id="timer">03:42</div>
+  <div class="judge-ctrl">
+    <button>← 上一段</button>
+    <button>下一段 →</button>
+    <button>▶ 开始</button>
+    <button>⏸ 暂停</button>
+    <button>↺ 重置</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- 左：正方 -->
+  <div class="col">
+    <div class="seat pro">
+      <div class="video-box">🧑</div>
+      <div class="seat-info"><div class="seat-role">Pro-1 一辩</div><div class="seat-name">张三</div></div>
+      <div class="seat-dot live"></div>
+    </div>
+    <div class="seat pro">
+      <div class="video-box">🧑</div>
+      <div class="seat-info"><div class="seat-role">Pro-2 二辩（你）</div><div class="seat-name">李四</div></div>
+      <div class="seat-dot"></div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);text-align:center;padding:4px">你现在是正方二辩<br>当前轮不到你发言，麦克风已自动静音<br>等赛程切到 Pro Rebuttal 时你会自动开麦</div>
+  </div>
+
+  <!-- 中间 -->
+  <div class="col-center">
+    <div class="phase-card">
+      <h3>Pro Constructive</h3>
+      <p>时长: 4分0秒</p>
+    </div>
+    <div class="speaking">🎤 开麦: Pro-1 (张三)</div>
+    <div class="seat judge" style="margin-top:10px">
+      <div class="seat-info"><div class="seat-role">Judge 裁判</div><div class="seat-name">王老师</div></div>
+    </div>
+    <div class="audience-box" style="margin-top:8px">观众: 3 人</div>
+  </div>
+
+  <!-- 右：反方 -->
+  <div class="col">
+    <div class="seat con">
+      <div class="video-box">🧑</div>
+      <div class="seat-info"><div class="seat-role">Con-1 一辩</div><div class="seat-name">王五</div></div>
+      <div class="seat-dot"></div>
+    </div>
+    <div class="seat con">
+      <div class="video-box">🧑</div>
+      <div class="seat-info"><div class="seat-role">Con-2 二辩</div><div class="seat-name">赵六</div></div>
+      <div class="seat-dot"></div>
+    </div>
+  </div>
+
+  <!-- 聊天 -->
+  <div class="chat">
+    <div class="chat-head">聊天</div>
+    <div class="chat-list">
+      <div class="chat-msg sys">Judge 王老师 开始了赛程: Pro Constructive</div>
+      <div class="chat-msg"><b>张三:</b> 我方的论点是…经济政策能促进增长</div>
+      <div class="chat-msg me"><b>李四(你):</b> 准备好了，等 rebuttal</div>
+      <div class="chat-msg"><b>王五:</b> 我方认为增长不等于福利</div>
+      <div class="chat-msg sys">计时器开始: 04:00</div>
+      <div class="chat-msg"><b>王老师(Judge):</b> 张三请开始 constructive</div>
+    </div>
+    <div class="chat-input"><input placeholder="发消息…" value="收到"><button>发</button></div>
+  </div>
+</div>
+
+<div class="footer">
+  <button>🎤 静音（当前轮不到）</button>
+  <button>📹 开摄像</button>
+  <button>离开</button>
+  <div class="st">已加入 ✓ · 正方二辩 · 麦克风静音中（等 Pro Rebuttal 自动开麦）</div>
+</div>
+
+<div class="note">这是模拟界面（demo）— 实际使用时点侧边栏 📞 链接进入真实房间</div>
+
+<script>
+// mock timer countdown
+var sec=3*60+42;
+var t=document.getElementById('timer');
+setInterval(function(){
+  sec--;if(sec<0)sec=240;
+  var m=Math.floor(sec/60),x=sec%60;
+  t.textContent=(m<10?'0':'')+m+':'+(x<10?'0':'')+x;
+  t.style.color=sec<=30?'#e57b7b':'#1b873f';
+},1000);
+</script>
+</body>
+</html>

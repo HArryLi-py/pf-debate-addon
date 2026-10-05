@@ -76,6 +76,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
   <h2 id="claimTitle">选择阵营</h2>
   <div class="claim-grid" id="claimGrid"></div>
   <div class="claim-status" id="claimStatus">加载中…</div>
+  <button id="resetSeatsBtn" style="margin-top:10px;background:none;border:1px solid var(--muted);color:var(--muted);border-radius:4px;padding:4px 12px;font-size:11px;cursor:pointer">重置所有席位</button>
   <div class="fb-fallback" id="fbFallback">
     <p style="color:var(--muted);font-size:11px;margin-bottom:6px">没收到 Firebase URL，手动粘贴：</p>
     <input id="fbManual" placeholder="https://你的项目.firebaseio.com">
@@ -344,6 +345,15 @@ $('leaveBtn').onclick=function(){
   if(myRole)fSet(fr('rooms/'+channel+'/seats/'+myRole),null);
   if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);
   window.close();
+};
+
+/* Reset seats button — clears stale seat data so you can re-claim */
+$('resetSeatsBtn').onclick=function(){
+  if(!fd){$('claimStatus').textContent='Firebase 没连，不能重置';return}
+  fSet(fr('rooms/'+channel+'/seats'),null);
+  fSet(fr('rooms/'+channel+'/roster'),null);
+  seats={};renderClaim();
+  $('claimStatus').textContent='席位已重置 ✓ — 选阵营加入';
 };
 
 /* Init */
