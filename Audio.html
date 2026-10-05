@@ -44,6 +44,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .debater .role{font-size:10px;color:#888}
 .debater .status{font-size:10px;margin-top:2px}
 .debater .status.on{color:#22c55e}.debater .status.off{color:#999}
+.debater .perm{font-size:10px;margin-top:1px}.debater .perm.y{color:#22c55e}.debater .perm.n{color:#999}
+.perm-btn{background:#e0e0e0;border:0;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:#333}
+.perm-btn.on{background:#22c55e;color:#fff}.perm-btn.off{background:#ccc;color:#888}
 .audio-bar{width:64px;height:4px;background:#e0e0e0;border-radius:2px;margin-top:4px;overflow:hidden}
 .audio-fill{height:100%;width:0;background:#22c55e;transition:width .1s}
 /* Timer */
@@ -109,7 +112,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
         <button id="phPrev">←</button><button id="phNext">→</button>
         <button id="tStart">▶</button><button id="tPause">⏸</button><button id="tReset">↺</button>
       </div>
-      <input id="topicInput" placeholder="辩题（裁判设置）" style="width:260px;border:1px solid #d0d4e0;border-radius:6px;padding:4px 8px;font-size:12px;margin-top:4px">
+      <input id="topicInput" placeholder="辩题（所有人可设置）" style="width:260px;border:1px solid #d0d4e0;border-radius:6px;padding:4px 8px;font-size:12px;margin-top:4px">
+      <div id="permPanel" style="margin-top:8px;text-align:center">
+        <div style="font-size:11px;color:#888;margin-bottom:4px">操控权限（主持人/Judge 管理）</div>
+        <div id="permBtns" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center"></div>
+      </div>
     </div>
     <div class="team con">
       <div class="debater"><div class="avatar" id="av-Con-1">C1</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-1"></div></div><div class="name" id="nm-Con-1">空</div><div class="role">Con-1 一辩</div><div class="status" id="st-Con-1">—</div></div>
@@ -157,6 +164,8 @@ async function mkToken(cn,uid){var ts=Math.floor(Date.now()/1000),exp=3600,salt=
 var params=new URLSearchParams(location.search);var channel=params.get('channel')||'pfdebate-default';var fbUrl=params.get('fbUrl')||'';
 var myRole=null,myUid=0,myName='',myAvatar='';var seats={},curPhase=1,desiredSub=new Set();
 var client=null,mic=null,cam=null,camEnabled=false;var timerEndsAt=0,timerRunning=false,timerDur=0,timerTick=null;var audioPoll=null;
+var perms={}; // role → true/false (default true if not set)
+function canControl(){return perms[myRole]!==false}
 var fb=null,fm=null,fd=null;
 async function ensureFB(url){if(fd)return fd;var m=await Promise.all([import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')]);fm=m;fd=m[1].getDatabase(m[0].initializeApp({databaseURL:url}));return fd}
 function fr(p){return fm[1].ref(fd,p)}function fOn(r,cb){fm[1].onValue(r,cb)}function fSet(r,v){fm[1].set(r,v)}function fPush(r,v){fm[1].push(r,v)}function fTxn(r,fn){fm[1].runTransaction(r,fn)}
@@ -208,6 +217,7 @@ async function startRoom(){
   fOn(fr('rooms/'+channel+'/timer'),function(s){var v=s.val();if(v){timerRunning=v.running;timerEndsAt=v.endsAt||0;timerDur=v.durationSec||0;renderTimer()}});
   fOn(fr('rooms/'+channel+'/chat'),function(s){renderChat(s.val()||{})});
   fOn(fr('rooms/'+channel+'/topic'),function(s){var v=s.val();if(v)$('topicText').textContent=v});
+  fOn(fr('rooms/'+channel+'/permissions'),function(s){perms=s.val()||{};renderSeats()});
 }
 /* Agora events */
 function roleOf(uid){return ROLE_OF[uid]||(uid>=401?'Audience':'?')}
@@ -235,7 +245,20 @@ function renderSeats(){var rule=PHASES.find(function(p){return p.n===curPhase})|
     var n=$('nm-'+r);if(n)n.textContent=occ?occ.displayName:'空';
     var av=$('av-'+r);if(av){av.className='avatar'+(r==='Judge'?' judge':'')+(live&&occ?' speaking':'')+(!live&&occ?' muted':'');if(occ)setAvatar(r,occ.avatar,occ.displayName);else av.textContent=r==='Judge'?'J':r.slice(-1)}
     var st=$('st-'+r);if(st)st.textContent=occ?(live?'🔊 发言中':'🔇 静音'):'—';if(st)st.className='status '+(live&&occ?'on':'off');
-  })}
+    // permission display
+    var pm=$('perm-'+r);if(pm){var has=perms[r]!==false;pm.textContent='操控 '+(has?'✓':'✗');pm.className='perm '+(has?'y':'n')}
+  });
+  renderPermBtns();
+}
+function renderPermBtns(){
+  var box=$('permBtns');if(!box)return;box.innerHTML='';
+  ['Pro-1','Pro-2','Con-1','Con-2','Judge'].forEach(function(r){
+    var has=perms[r]!==false;
+    var b=document.createElement('button');b.className='perm-btn '+(has?'on':'off');b.textContent=r+': '+(has?'✓':'✗');
+    b.onclick=function(){fSet(fr('rooms/'+channel+'/permissions/'+r),!has)};
+    box.appendChild(b);
+  });
+}
 function renderTimer(){var box=$('timerNum');var fill=$('progFill');
   function tick(){if(!timerRunning||!timerEndsAt){box.textContent='--:--';box.className='timer-num';fill.style.width='0%';return}
     var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));
@@ -259,13 +282,14 @@ function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInt
     var av=$('av-'+r);if(av){if(l>0.03){av.classList.add('speaking')}else if(!rule_pub_has(r)){av.classList.remove('speaking')}}}})
 },200)}
 function rule_pub_has(role){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];return rule.pub.includes(role)}
-/* Judge controls */
-$('phNext').onclick=function(){var n=Math.min(12,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),n);var r=PHASES.find(function(p){return p.n===n});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})};
-$('phPrev').onclick=function(){fSet(fr('rooms/'+channel+'/phase'),Math.max(1,curPhase-1))};
-$('tStart').onclick=function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec})};
-$('tPause').onclick=function(){if(timerEndsAt){var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:rem})}};
-$('tReset').onclick=function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})};
-$('topicInput').onchange=function(){fSet(fr('rooms/'+channel+'/topic'),$('topicInput').value)};
+/* Judge controls — check permission */
+function needPerm(fn){return function(){if(!canControl()){$('stLine').textContent='没有操控权限（主持人没给你）';return}fn()}}
+$('phNext').onclick=needPerm(function(){var n=Math.min(12,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),n);var r=PHASES.find(function(p){return p.n===n});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
+$('phPrev').onclick=needPerm(function(){fSet(fr('rooms/'+channel+'/phase'),Math.max(1,curPhase-1))});
+$('tStart').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec})});
+$('tPause').onclick=needPerm(function(){if(timerEndsAt){var rem=Math.max(0,Math.round((timerEndsAt-Date.now())/1000));fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:rem})}});
+$('tReset').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
+$('topicInput').onchange=needPerm(function(){fSet(fr('rooms/'+channel+'/topic'),$('topicInput').value)});
 /* Chat */
 $('chatBtn').onclick=sendChat;$('chatInput').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();sendChat()}};
 function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput').value='';fPush(fr('rooms/'+channel+'/chat'),{uid:myUid,displayName:myName,text:t,ts:Date.now()})}
