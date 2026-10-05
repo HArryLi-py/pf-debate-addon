@@ -344,7 +344,7 @@
     }).getFbUrl();
 
     // Phase 3: set the audio room link href (just sets href, no complex JS)
-    var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?channel=pfdebate-';
+    var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?v=' + Date.now() + '&channel=pfdebate-';
     $('audioLink').href = AUDIO_PAGE + 'default';
     google.script.run.withSuccessHandler(function(rid){
       $('audioLink').href = AUDIO_PAGE + rid;
