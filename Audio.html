@@ -116,6 +116,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
         <button id="prepBtn">⏱ Prep</button>
         <button id="proPrepBtn" style="background:#2563eb">正方 Prep</button>
         <button id="conPrepBtn" style="background:#dc2626">反方 Prep</button>
+        <button id="stopPrepBtn" style="background:#666">⏹ 停止 Prep</button>
         <button id="autoAdvBtn">🔗 连续</button>
         <button id="tStart">▶</button><button id="tPause">⏸</button><button id="tReset">↺</button>
       </div>
@@ -312,19 +313,40 @@ $('tReset').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n
 $('topicInput').onchange=needPerm(function(){fSet(fr('rooms/'+channel+'/topic'),$('topicInput').value)});
 /* Prep button — jumps to phase 12 (team-private audio, video still visible to all) */
 $('prepBtn').onclick=needPerm(function(){fSet(fr('rooms/'+channel+'/phase'),12);var r=PHASES.find(function(p){return p.n===12});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
-/* Pro/Con team prep — independent per-team 3:00 timers */
-var proPrepRem=180,conPrepRem=180;
+/* Pro/Con team prep — independent per-team 3:00 timers that accumulate (resume from remaining) */
+var proPrepRem=180,conPrepRem=180,prepTick=null,prepRunning=null;
+function startPrepCountdown(team){
+  if(prepTick)clearInterval(prepTick);
+  prepRunning=team;
+  prepTick=setInterval(function(){
+    if(team==='pro'){proPrepRem=Math.max(0,proPrepRem-1);$('proPrep').textContent='Prep: '+fmt(proPrepRem);if(proPrepRem<=0){stopPrepCountdown();fSet(fr('rooms/'+channel+'/proPrep'),{remaining:0,running:false})}else{fSet(fr('rooms/'+channel+'/proPrep'),{remaining:proPrepRem,running:true})}}
+    else{conPrepRem=Math.max(0,conPrepRem-1);$('conPrep').textContent='Prep: '+fmt(conPrepRem);if(conPrepRem<=0){stopPrepCountdown();fSet(fr('rooms/'+channel+'/conPrep'),{remaining:0,running:false})}else{fSet(fr('rooms/'+channel+'/conPrep'),{remaining:conPrepRem,running:true})}}
+  },1000);
+}
+function stopPrepCountdown(){
+  if(prepTick){clearInterval(prepTick);prepTick=null;
+  if(prepRunning==='pro'){fSet(fr('rooms/'+channel+'/proPrep'),{remaining:proPrepRem,running:false});}
+  else if(prepRunning==='con'){fSet(fr('rooms/'+channel+'/conPrep'),{remaining:conPrepRem,running:false});}
+  prepRunning=null;}
+}
 $('proPrepBtn').onclick=needPerm(function(){
   if(proPrepRem<=0)return;
-  fSet(fr('rooms/'+channel+'/proPrep'),{running:true,endsAt:Date.now()+proPrepRem*1000,remaining:proPrepRem});
-  // during Pro prep, Pro team is team-private, Con+Judge+Audience silence
+  stopPrepCountdown();
   fSet(fr('rooms/'+channel+'/phase'),12);
+  startPrepCountdown('pro');
+  $('stLine').textContent='正方 Prep 已开始 — '+fmt(proPrepRem)+' remaining';
 });
 $('conPrepBtn').onclick=needPerm(function(){
   if(conPrepRem<=0)return;
-  fSet(fr('rooms/'+channel+'/conPrep'),{running:true,endsAt:Date.now()+conPrepRem*1000,remaining:conPrepRem});
+  stopPrepCountdown();
   fSet(fr('rooms/'+channel+'/phase'),12);
+  startPrepCountdown('con');
+  $('stLine').textContent='反方 Prep 已开始 — '+fmt(conPrepRem)+' remaining';
 });
+$('stopPrepBtn').onclick=function(){
+  stopPrepCountdown();
+  $('stLine').textContent='Prep 已停止 — 正方剩余 '+fmt(proPrepRem)+' 反方剩余 '+fmt(conPrepRem);
+};
 /* Simulate 4 debaters — fills seats with mock data so Judge can see the full room */
 $('simBtn').onclick=function(){
   [['Pro-1',101,'张三'],['Pro-2',102,'李四'],['Con-1',201,'王五'],['Con-2',202,'赵六']].forEach(function(d){
