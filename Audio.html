@@ -198,10 +198,13 @@ function renderClaim(){
   }
 }
 async function claimSeat(role){
-  if(seats[role])return;myName=$('pfName').value.trim()||'Debater-'+Math.random().toString(36).slice(2,5);myAvatar=$('pfAvatar').value.trim();
+  if(seats[role]){$('claimStatus').textContent='席位 "'+role+'" 已被占用。点下方"重置席位"清掉旧数据再选。';$('claimStatus').className='cs err';return}
+  myName=$('pfName').value.trim()||'Debater-'+Math.random().toString(36).slice(2,5);myAvatar=$('pfAvatar').value.trim();
   var ok=false;
-  try{await fTxn(fr('rooms/'+channel+'/seats/'+role),function(c){if(c===null){c={uid:UID[role]||Math.floor(Math.random()*900)+100,displayName:myName,avatar:myAvatar,claimedAt:Date.now()};ok=true;return c}return})}catch(e){}
-  if(ok){myRole=role;myUid=UID[role]||Math.floor(Math.random()*900)+100;fSet(fr('rooms/'+channel+'/roster/'+myUid),role);startRoom()}else{$('claimStatus').textContent='席位被占了';$('claimStatus').className='cs err'}
+  try{await fTxn(fr('rooms/'+channel+'/seats/'+role),function(c){if(c===null){c={uid:UID[role]||Math.floor(Math.random()*900)+100,displayName:myName,avatar:myAvatar,claimedAt:Date.now()};ok=true;return c}return})}
+  catch(e){$('claimStatus').textContent='Firebase 写入失败: '+e.message;$('claimStatus').className='cs err';return}
+  if(ok){myRole=role;myUid=UID[role]||Math.floor(Math.random()*900)+100;fSet(fr('rooms/'+channel+'/roster/'+myUid),role);startRoom()}
+  else{$('claimStatus').textContent='席位被占了，点"重置席位"再试';$('claimStatus').className='cs err'}
 }
 /* Start room */
 async function startRoom(){
