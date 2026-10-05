@@ -9,6 +9,7 @@
 (function(){var U=['https://cdn.jsdelivr.net/npm/agora-rtc-sdk-ng@4.24.8/dist/AgoraRTC_N-production.js','https://unpkg.com/agora-rtc-sdk-ng@4.24.8/dist/AgoraRTC_N-production.js','https://download.agora.io/sdk/release/AgoraRTC_N-4.21.0.js'];
 function t(i){if(i>=U.length){window._af=true;return}var s=document.createElement('script');s.src=U[i];s.onload=function(){window._al=true};s.onerror=function(){s.remove();t(i+1)};document.head.appendChild(s)}t(0)})();
 </script>
+<script src="firebase-config.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:14px;color:#1a1a2e;background:#f5f6fa;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -102,6 +103,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
     <div class="team pro">
       <div class="debater"><div class="avatar" id="av-Pro-1">P1</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-1"></div></div><div class="name" id="nm-Pro-1">空</div><div class="role">Pro-1 一辩</div><div class="status" id="st-Pro-1">—</div></div>
       <div class="debater"><div class="avatar" id="av-Pro-2">P2</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-2"></div></div><div class="name" id="nm-Pro-2">空</div><div class="role">Pro-2 二辩</div><div class="status" id="st-Pro-2">—</div></div>
+      <div style="font-size:12px;color:#2563eb;font-weight:600;text-align:center;padding:4px" id="proPrep">Prep: 3:00</div>
     </div>
     <div class="center-panel">
       <div class="timer-num" id="timerNum">--:--</div>
@@ -111,6 +113,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
       <div class="judge-ctrl" id="judgeCtrl">
         <button id="phPrev">←</button><button id="phNext">→</button>
         <button id="prepBtn">⏱ Prep</button>
+        <button id="autoAdvBtn">🔗 连续</button>
         <button id="tStart">▶</button><button id="tPause">⏸</button><button id="tReset">↺</button>
       </div>
       <input id="topicInput" placeholder="辩题（所有人可设置）" style="width:260px;border:1px solid #d0d4e0;border-radius:6px;padding:4px 8px;font-size:12px;margin-top:4px">
@@ -122,6 +125,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
     <div class="team con">
       <div class="debater"><div class="avatar" id="av-Con-1">C1</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-1"></div></div><div class="name" id="nm-Con-1">空</div><div class="role">Con-1 一辩</div><div class="status" id="st-Con-1">—</div></div>
       <div class="debater"><div class="avatar" id="av-Con-2">C2</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-2"></div></div><div class="name" id="nm-Con-2">空</div><div class="role">Con-2 二辩</div><div class="status" id="st-Con-2">—</div></div>
+      <div style="font-size:12px;color:#dc2626;font-weight:600;text-align:center;padding:4px" id="conPrep">Prep: 3:00</div>
     </div>
   </div>
   <div class="chat-bar">
@@ -166,7 +170,8 @@ async function mkToken(cn,uid){var ts=Math.floor(Date.now()/1000),exp=3600,salt=
 var params=new URLSearchParams(location.search);var channel=params.get('channel')||'pfdebate-default';var fbUrl=params.get('fbUrl')||'';
 var myRole=null,myUid=0,myName='',myAvatar='';var seats={},curPhase=1,desiredSub=new Set();
 var client=null,mic=null,cam=null,camEnabled=false;var timerEndsAt=0,timerRunning=false,timerDur=0,timerTick=null;var audioPoll=null;
-var perms={}; // role → true/false (default true if not set)
+var perms={};
+var autoAdvance=false,autoAdvanced=false; // role → true/false (default true if not set)
 function canControl(){return perms[myRole]!==false}
 var fb=null,fm=null,fd=null;
 async function ensureFB(url){if(fd)return fd;var m=await Promise.all([import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')]);fm=m;fd=m[1].getDatabase(m[0].initializeApp({databaseURL:url}));return fd}
@@ -237,8 +242,8 @@ async function enforcePhase(phase){
   else if(Array.isArray(sr))sr.forEach(function(r){desiredSub.add(r)});
   if(client){for(var i=0;i<client.remoteUsers.length;i++){var u=client.remoteUsers[i];if(!u.hasAudio)continue;var r=roleOf(u.uid);var want=desiredSub.has(r);var has=!!u.audioTrack;if(want&&!has){try{var t=await client.subscribe(u,'audio');t.play()}catch(e){}}else if(!want&&has){try{await client.unsubscribe(u,'audio')}catch(e){}}}}
   renderPhase();renderSeats();
+  autoAdvanced=false; // reset auto-advance flag on phase change
 }
-/* UI */
 function renderPhase(){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
   $('nowSpeaking').textContent='当前: '+rule.name;$('nextUp').textContent='开麦: '+rule.pub.join(', ')}
 function renderSeats(){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
@@ -267,8 +272,10 @@ function renderTimer(){var box=$('timerNum');var fill=$('progFill');
     var m=Math.floor(rem/60),x=rem%60;box.textContent=(m<10?'0':'')+m+':'+(x<10?'0':'')+x;
     box.className='timer-num'+(rem<=30?' warn':'')+(rem<=0?' done':'');
     var pct=timerDur>0?(rem/timerDur*100):0;fill.style.width=pct+'%';
-    fill.className='progress-fill'+(rem<=30?' warn':'')+(rem<=0?' done':'');}
+    fill.className='progress-fill'+(rem<=30?' warn':'')+(rem<=0?' done':'');
+    if(rem<=0&&autoAdvance&&!autoAdvanced){autoAdvanced=true;var next=Math.min(12,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),next);var r=PHASES.find(function(p){return p.n===next});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec})}}
   if(timerTick)clearInterval(timerTick);tick();if(timerRunning)timerTick=setInterval(tick,1000)}
+$('autoAdvBtn').onclick=function(){autoAdvance=!autoAdvance;$('autoAdvBtn').style.background=autoAdvance?'#22c55e':'#1a1a2e';$('autoAdvBtn').textContent=autoAdvance?'🔗 ✓':'🔗 连续'};
 function renderChat(msgs){var l=$('chatList');l.innerHTML='';var keys=Object.keys(msgs).sort();
   keys.forEach(function(k){var m=msgs[k];if(!m)return;var d=document.createElement('div');
     if(m.sys){d.className='chat-msg sys';d.textContent=m.text}
@@ -329,7 +336,9 @@ $('resetBtn').onclick=function(){if(!fd){$('claimStatus').textContent='Firebase 
 /* Init */
 renderClaim();
 async function init(){var cs=$('claimStatus');
-  if(!fbUrl){cs.innerHTML='需要 Firebase URL — 在下面粘贴你的 databaseURL（console.firebase.google.com → 你的项目 → Realtime Database → 顶部的 URL）';cs.className='cs err';$('fbFallback').style.display='block';return}
+  // Try URL param first, then firebase-config.js constant, then manual input
+  if(!fbUrl && typeof FIREBASE_URL!=='undefined' && FIREBASE_URL){fbUrl=FIREBASE_URL}
+  if(!fbUrl){cs.innerHTML='需要 Firebase URL — 在下面粘贴（只需一次）';cs.className='cs err';$('fbFallback').style.display='block';return}
   cs.textContent='连接 Firebase…';
   try{await ensureFB(fbUrl)}catch(e){cs.textContent='Firebase 失败: '+e.message;cs.className='cs err';$('fbFallback').style.display='block';return}
   cs.textContent='Firebase 已连 ✓ — 填名字选阵营';cs.className='cs';
