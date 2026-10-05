@@ -96,7 +96,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
     <div class="vs">Pro 正方 ◀ vs ▶ Con 反方</div>
   </div>
   <div class="judge-row" id="judgeRow" style="display:none">
-    <div class="debater"><div class="avatar judge" id="av-Judge">J</div><div class="name" id="nm-Judge">裁判</div></div>
+    <div class="debater"><div class="avatar judge" id="av-Judge">J</div><div class="audio-bar"><div class="audio-fill" id="bar-Judge"></div></div><div class="name" id="nm-Judge">裁判</div><div class="status" id="st-Judge">—</div><div class="perm" id="perm-Judge">操控 —</div></div>
   </div>
   <div class="main-row">
     <div class="team pro">
@@ -231,12 +231,9 @@ function onUnpub(user,mt){if(mt==='video'){var r=roleOf(user.uid);var box=$('av-
 /* Phase enforcement */
 async function enforcePhase(phase){
   var rule=PHASES.find(function(p){return p.n===phase})||PHASES[0];
-  var shouldPub=rule.pub.includes(myRole);
-  if(mic)await mic.setMuted(!shouldPub);
-  if(cam&&camEnabled)await cam.setMuted(!shouldPub);
-  $('micBtn').textContent=shouldPub?'🎤 静音':'🎤 开麦（当前轮不到）';
+  // mic is USER-CONTROLLED — not auto-muted by phase. Privacy = selective subscribe.
   var sr=rule.sub[myRole]||[];desiredSub=new Set();
-  if(sr==='all')rule.pub.forEach(function(r){if(r!==myRole)desiredSub.add(r)});
+  if(sr==='all'){if(client)for(var j=0;j<client.remoteUsers.length;j++){if(client.remoteUsers[j].hasAudio){var rr=roleOf(client.remoteUsers[j].uid);if(rr!==myRole)desiredSub.add(rr)}}}
   else if(Array.isArray(sr))sr.forEach(function(r){desiredSub.add(r)});
   if(client){for(var i=0;i<client.remoteUsers.length;i++){var u=client.remoteUsers[i];if(!u.hasAudio)continue;var r=roleOf(u.uid);var want=desiredSub.has(r);var has=!!u.audioTrack;if(want&&!has){try{var t=await client.subscribe(u,'audio');t.play()}catch(e){}}else if(!want&&has){try{await client.unsubscribe(u,'audio')}catch(e){}}}}
   renderPhase();renderSeats();
