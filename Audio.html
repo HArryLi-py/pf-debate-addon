@@ -113,6 +113,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
       <div class="judge-ctrl" id="judgeCtrl">
         <button id="phPrev">←</button><button id="phNext">→</button>
         <button id="prepBtn">⏱ Prep</button>
+        <button id="proPrepBtn" style="background:#2563eb">正方 Prep</button>
+        <button id="conPrepBtn" style="background:#dc2626">反方 Prep</button>
         <button id="autoAdvBtn">🔗 连续</button>
         <button id="tStart">▶</button><button id="tPause">⏸</button><button id="tReset">↺</button>
       </div>
@@ -228,6 +230,11 @@ async function startRoom(){
   fOn(fr('rooms/'+channel+'/chat'),function(s){renderChat(s.val()||{})});
   fOn(fr('rooms/'+channel+'/topic'),function(s){var v=s.val();if(v)$('topicText').textContent=v});
   fOn(fr('rooms/'+channel+'/permissions'),function(s){perms=s.val()||{};renderSeats()});
+  // per-team prep timers
+  fOn(fr('rooms/'+channel+'/proPrep'),function(s){var v=s.val();if(v){if(v.running&&v.endsAt){var rem=Math.max(0,Math.round((v.endsAt-Date.now())/1000));proPrepRem=v.remaining||rem;$('proPrep').textContent='Prep: '+fmt(rem);if(rem<=0){proPrepRem=0;$('proPrep').textContent='Prep: 0:00';fSet(fr('rooms/'+channel+'/proPrep'),{running:false})}}else{$('proPrep').textContent='Prep: '+fmt(v.remaining||proPrepRem)}}});
+  fOn(fr('rooms/'+channel+'/conPrep'),function(s){var v=s.val();if(v){if(v.running&&v.endsAt){var rem=Math.max(0,Math.round((v.endsAt-Date.now())/1000));conPrepRem=v.remaining||rem;$('conPrep').textContent='Prep: '+fmt(rem);if(rem<=0){conPrepRem=0;$('conPrep').textContent='Prep: 0:00';fSet(fr('rooms/'+channel+'/conPrep'),{running:false})}}else{$('conPrep').textContent='Prep: '+fmt(v.remaining||conPrepRem)}}});
+  // swap requests
+  fOn(fr('rooms/'+channel+'/swapReqs'),function(s){handleSwapReqs(s.val()||{})});
 }
 /* Agora events */
 function roleOf(uid){return ROLE_OF[uid]||(uid>=401?'Audience':'?')}
@@ -304,6 +311,19 @@ $('tReset').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n
 $('topicInput').onchange=needPerm(function(){fSet(fr('rooms/'+channel+'/topic'),$('topicInput').value)});
 /* Prep button — jumps to phase 12 (team-private audio, video still visible to all) */
 $('prepBtn').onclick=needPerm(function(){fSet(fr('rooms/'+channel+'/phase'),12);var r=PHASES.find(function(p){return p.n===12});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec})});
+/* Pro/Con team prep — independent per-team 3:00 timers */
+var proPrepRem=180,conPrepRem=180;
+$('proPrepBtn').onclick=needPerm(function(){
+  if(proPrepRem<=0)return;
+  fSet(fr('rooms/'+channel+'/proPrep'),{running:true,endsAt:Date.now()+proPrepRem*1000,remaining:proPrepRem});
+  // during Pro prep, Pro team is team-private, Con+Judge+Audience silence
+  fSet(fr('rooms/'+channel+'/phase'),12);
+});
+$('conPrepBtn').onclick=needPerm(function(){
+  if(conPrepRem<=0)return;
+  fSet(fr('rooms/'+channel+'/conPrep'),{running:true,endsAt:Date.now()+conPrepRem*1000,remaining:conPrepRem});
+  fSet(fr('rooms/'+channel+'/phase'),12);
+});
 /* Simulate 4 debaters — fills seats with mock data so Judge can see the full room */
 $('simBtn').onclick=function(){
   [['Pro-1',101,'张三'],['Pro-2',102,'李四'],['Con-1',201,'王五'],['Con-2',202,'赵六']].forEach(function(d){
@@ -334,6 +354,44 @@ $('switchBtn').onclick=async function(){
   $('claimStatus').textContent='换座位 — 重新选择';
   renderClaim();
 };
+/* Swap request — request to swap positions with another occupied seat */
+function requestSwap(targetRole){
+  if(targetRole===myRole)return;
+  fSet(fr('rooms/'+channel+'/swapReqs/'+myRole+'_'+targetRole),{from:myRole,to:targetRole,fromUid:myUid,status:'pending',ts:Date.now()});
+  $('stLine').textContent='已向 '+targetRole+' 发送换位请求，等对方确认';
+}
+function handleSwapReqs(reqs){
+  for(var key in reqs){
+    var req=reqs[key];
+    if(req.status==='pending' && req.to===myRole){
+      $('stLine').innerHTML=''+req.from+' 请求与你换位。<button onclick="acceptSwap(\''+key+'\')" style="background:#22c55e;color:#fff;border:0;border-radius:4px;padding:4px 10px;margin-left:6px;cursor:pointer">接受</button><button onclick="rejectSwap(\''+key+'\')" style="background:#dc2626;color:#fff;border:0;border-radius:4px;padding:4px 10px;margin-left:4px;cursor:pointer">拒绝</button>';
+      return;
+    }
+  }
+  // no pending requests for me
+}
+function acceptSwap(key){
+  var req={}; /* fetch done in the callback */
+  fOn(fr('rooms/'+channel+'/swapReqs/'+key),function(s){var v=s.val();if(!v)return;
+    // swap seats in Firebase
+    var fromRole=v.from,toRole=v.to;
+    var fromOcc=seats[fromRole],toOcc=seats[toRole];
+    if(fromOcc&&toOcc){
+      fSet(fr('rooms/'+channel+'/seats/'+fromRole),{uid:toOcc.uid,displayName:toOcc.displayName,avatar:toOcc.avatar,claimedAt:toOcc.claimedAt});
+      fSet(fr('rooms/'+channel+'/seats/'+toRole),{uid:fromOcc.uid,displayName:fromOcc.displayName,avatar:fromOcc.avatar,claimedAt:fromOcc.claimedAt});
+    }
+    fSet(fr('rooms/'+channel+'/roster/'+v.fromUid),toRole);
+    fSet(fr('rooms/'+channel+'/roster/'+myUid),fromRole);
+    fSet(fr('rooms/'+channel+'/swapReqs/'+key),{status:'accepted',ts:Date.now()});
+    myRole=toRole;myUid=UID[toRole]||myUid;
+    $('stLine').textContent='换位成功 ✓ 你现在是 '+toRole;
+    $('stLine').className='st ok';
+  });
+}
+function rejectSwap(key){
+  fSet(fr('rooms/'+channel+'/swapReqs/'+key),{status:'rejected',ts:Date.now()});
+  $('stLine').textContent='已拒绝换位请求';
+}
 /* Reset seats */
 $('resetBtn').onclick=function(){if(!fd){$('claimStatus').textContent='Firebase 没连';return}fSet(fr('rooms/'+channel+'/seats'),null);fSet(fr('rooms/'+channel+'/roster'),null);seats={};$('claimStatus').textContent='席位已重置 ✓';$('claimStatus').className='cs'};
 /* Init */
