@@ -26,7 +26,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 /* Room */
 .room{display:none;flex:1;flex-direction:column;overflow:hidden}
 .topic-bar{background:#fff;padding:8px 16px;text-align:center;border-bottom:1px solid #e0e0e8}
-.topic-bar .topic{font-size:20px;font-weight:700;color:#1a1a2e}
+.topic-bar .topic{font-size:24px;font-weight:700;color:#1a1a2e}
 .topic-bar .vs{font-size:11px;color:#888;margin-top:2px}
 .judge-row{display:flex;justify-content:center;padding:8px;background:#fffceb;border-bottom:1px solid #f0e0a0}
 .main-row{flex:1;display:flex;overflow:hidden}
@@ -53,7 +53,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .progress-fill{height:100%;background:#22c55e;transition:width 1s linear}
 .progress-fill.warn{background:#f59e0b}.progress-fill.done{background:#dc2626}
 .judge-ctrl{display:none;gap:6px;margin-top:8px}
-.judge-ctrl button{background:#1a1a2e;color:#fff;border:0;border-radius:6px;padding:8px 14px;font-size:14px;cursor:pointer}
+.judge-ctrl button{background:#1a1a2e;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}
 .judge-ctrl button:hover{background:#2a2a4e}
 .now-speaking{font-size:12px;color:#22c55e;font-weight:600;text-align:center;margin-top:4px}
 .next-up{font-size:11px;color:#888;text-align:center}
@@ -68,7 +68,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .chat-input button{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
 /* Footer */
 .footer{background:#1a1a2e;padding:6px 14px;display:flex;align-items:center;gap:8px}
-.footer button{background:#2a2a4e;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:14px;cursor:pointer}
+.footer button{background:#2a2a4e;color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:16px;cursor:pointer}
 .footer .st{flex:1;font-size:11px;color:#888}.footer .st.ok{color:#22c55e}.footer .st.err{color:#ef4444}
 </style>
 </head>
@@ -124,6 +124,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
   <div class="footer">
     <button id="micBtn">🎤 静音</button>
     <button id="camBtn">📹 摄像</button>
+    <button id="switchBtn">🔄 换座位</button>
     <button id="leaveBtn">离开</button>
     <div class="st" id="stLine">Ready</div>
   </div>
@@ -189,7 +190,9 @@ async function claimSeat(role){
 /* Start room */
 async function startRoom(){
   $('claim').style.display='none';$('room').style.display='flex';
-  if(myRole==='Judge'){$('judgeCtrl').style.display='flex';$('judgeRow').style.display='flex';$('topicInput').style.display='block'}
+  if(myRole==='Judge'){$('judgeRow').style.display='flex'}
+  // ALL users can control (for testing — not just Judge)
+  $('judgeCtrl').style.display='flex';
   renderSeats();$('stLine').textContent='加入音频…';
   if(typeof AgoraRTC==='undefined'){$('stLine').textContent='Agora SDK 没加载';return}
   try{
@@ -270,6 +273,20 @@ function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput'
 $('micBtn').onclick=function(){if(!mic)return;var m=!mic.muted;mic.setMuted(m);$('micBtn').textContent=m?'🎤 静音':'🎤 开麦'};
 $('camBtn').onclick=async function(){if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=false}catch(e){return}}camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';enforcePhase(curPhase)};
 $('leaveBtn').onclick=function(){try{if(mic)mic.close()}catch(e){}try{if(cam)cam.close()}catch(e){}try{if(client)client.leave()}catch(e){}if(myRole)fSet(fr('rooms/'+channel+'/seats/'+myRole),null);if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);window.close()};
+/* Switch seat — release current seat, go back to claim screen */
+$('switchBtn').onclick=async function(){
+  try{if(mic)mic.close()}catch(e){}
+  try{if(cam)cam.close()}catch(e){}
+  try{if(client)await client.leave()}catch(e){}
+  if(myRole)fSet(fr('rooms/'+channel+'/seats/'+myRole),null);
+  if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);
+  myRole=null;myUid=0;mic=null;cam=null;client=null;
+  if(audioPoll)clearInterval(audioPoll);
+  $('room').style.display='none';
+  $('claim').style.display='flex';
+  $('claimStatus').textContent='换座位 — 重新选择';
+  renderClaim();
+};
 /* Reset seats */
 $('resetBtn').onclick=function(){if(!fd){$('claimStatus').textContent='Firebase 没连';return}fSet(fr('rooms/'+channel+'/seats'),null);fSet(fr('rooms/'+channel+'/roster'),null);seats={};$('claimStatus').textContent='席位已重置 ✓';$('claimStatus').className='cs'};
 /* Init */
