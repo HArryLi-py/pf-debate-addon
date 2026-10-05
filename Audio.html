@@ -221,8 +221,8 @@ async function startRoom(){
 }
 /* Agora events */
 function roleOf(uid){return ROLE_OF[uid]||(uid>=401?'Audience':'?')}
-function onPub(user,mt){if(mt!=='audio'&&mt!=='video')return;var r=roleOf(user.uid);if(desiredSub.has(r)){client.subscribe(user,mt).then(function(t){if(mt==='audio')t.play()}).catch(function(){})}}
-function onUnpub(user,mt){}
+function onPub(user,mt){if(mt!=='audio'&&mt!=='video')return;var r=roleOf(user.uid);if(desiredSub.has(r)){client.subscribe(user,mt).then(function(t){if(mt==='audio')t.play();else if(mt==='video'){var box=$('av-'+r);if(box){box.innerHTML='';t.play(box)}}}).catch(function(){})}}
+function onUnpub(user,mt){if(mt==='video'){var r=roleOf(user.uid);var box=$('av-'+r);if(box){var occ=seats[r];if(occ)setAvatar(r,occ.avatar,occ.displayName);else box.textContent=r==='Judge'?'J':r.slice(-1)}}}
 /* Phase enforcement */
 async function enforcePhase(phase){
   var rule=PHASES.find(function(p){return p.n===phase})||PHASES[0];
@@ -233,7 +233,11 @@ async function enforcePhase(phase){
   var sr=rule.sub[myRole]||[];desiredSub=new Set();
   if(sr==='all')rule.pub.forEach(function(r){if(r!==myRole)desiredSub.add(r)});
   else if(Array.isArray(sr))sr.forEach(function(r){desiredSub.add(r)});
-  if(client){for(var i=0;i<client.remoteUsers.length;i++){var u=client.remoteUsers[i];if(!u.hasAudio)continue;var r=roleOf(u.uid);var want=desiredSub.has(r);var has=!!u.audioTrack;if(want&&!has){try{var t=await client.subscribe(u,'audio');t.play()}catch(e){}}else if(!want&&has){try{await client.unsubscribe(u,'audio')}catch(e){}}}}
+  if(client){for(var i=0;i<client.remoteUsers.length;i++){var u=client.remoteUsers[i];if(!u.hasAudio)continue;var r=roleOf(u.uid);var want=desiredSub.has(r);var has=!!u.audioTrack;if(want&&!has){try{var t=await client.subscribe(u,'audio');t.play()}catch(e){}}else if(!want&&has){try{await client.unsubscribe(u,'audio')}catch(e){}}
+    // video subscribe/unsubscribe
+    if(want&&u.hasVideo&&!u.videoTrack){try{var vt=await client.subscribe(u,'video');var vBox=$('av-'+r);if(vBox){vBox.innerHTML='';vt.play(vBox)}}catch(e){}}
+    else if(!want&&u.videoTrack){try{await client.unsubscribe(u,'video');var vBox2=$('av-'+r);if(vBox2){var occ=seats[r];if(occ)setAvatar(r,occ.avatar,occ.displayName);else vBox2.textContent=r==='Judge'?'J':r.slice(-1)}}catch(e){}}
+  }}
   renderPhase();renderSeats();
 }
 /* UI */
@@ -295,7 +299,7 @@ $('chatBtn').onclick=sendChat;$('chatInput').onkeydown=function(e){if(e.key==='E
 function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput').value='';fPush(fr('rooms/'+channel+'/chat'),{uid:myUid,displayName:myName,text:t,ts:Date.now()})}
 /* Mic/Cam/Leave */
 $('micBtn').onclick=function(){if(!mic)return;var m=!mic.muted;mic.setMuted(m);$('micBtn').textContent=m?'🎤 静音':'🎤 开麦'};
-$('camBtn').onclick=async function(){if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=false}catch(e){return}}camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';enforcePhase(curPhase)};
+$('camBtn').onclick=async function(){if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=false}catch(e){return}}camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';if(camEnabled){var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)}}else{var box2=$('av-'+myRole);if(box2){var occ=seats[myRole];if(occ)setAvatar(myRole,occ.avatar,occ.displayName);else box2.textContent=myRole==='Judge'?'J':myRole.slice(-1)}}enforcePhase(curPhase)};
 $('leaveBtn').onclick=function(){try{if(mic)mic.close()}catch(e){}try{if(cam)cam.close()}catch(e){}try{if(client)client.leave()}catch(e){}if(myRole)fSet(fr('rooms/'+channel+'/seats/'+myRole),null);if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);window.close()};
 /* Switch seat — release current seat, go back to claim screen */
 $('switchBtn').onclick=async function(){
