@@ -91,22 +91,6 @@
     .presets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 10px}
     .presets button{padding:6px;font-size:12px}
 
-    /* phase 2 firebase connection test */
-    .fb-result{margin-top:6px;font-size:12px;line-height:1.45;padding:8px 10px;border-radius:8px;background:var(--bg-2);color:var(--muted);min-height:18px;border:1px solid transparent;white-space:pre-wrap}
-    .fb-result.ok{color:var(--ok);background:var(--ok-bg);border-color:rgba(22,163,74,.25)}
-    .fb-result.err{color:var(--err);background:var(--err-bg);border-color:rgba(220,38,38,.25)}
-    .fb-result.warn{color:#a35a00;background:#fef7e0;border-color:rgba(163,90,0,.25)}
-
-    /* phase 2: round phase + chat */
-    .phase-current{font-size:13px;font-weight:600;color:var(--accent-2);padding:7px 10px;background:var(--bg-3);border-radius:6px;margin:4px 0;line-height:1.4}
-    .phase-seq{font-size:11px;color:var(--muted);max-height:110px;overflow:auto;margin:4px 0}
-    .phase-item{padding:2px 8px;border-radius:4px;line-height:1.5}
-    .phase-item.current{color:var(--accent-2);font-weight:600;background:var(--accent-soft)}
-    .chat-list{font-size:12px;max-height:150px;overflow:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:4px 0}
-    .chat-msg{padding:2px 0;line-height:1.4;word-wrap:break-word}
-    .chat-msg b{color:var(--accent-2);margin-right:4px}
-    .chat-msg.me b{color:var(--ok)}
-
     @media (prefers-reduced-motion: reduce){
       *{transition:none !important; animation:none !important}
       button:hover{transform:none}
@@ -160,27 +144,6 @@
   <div class="presets" id="debPresets"></div>
   <div class="hint">本地计时（Phase 1，不同步）。Phase 2 用 Firebase 同步给所有辩手。</div>
 
-  <hr>
-
-  <h4>聊天 + 赛程</h4>
-  <div class="row"><button class="primary" id="chatDialogBtn">💬 打开聊天 + 赛程窗口</button></div>
-  <div class="hint">弹出独立窗口（可与侧边栏同时开着）：微信样式聊天 + NSDA 赛程状态，所有辩手同步。</div>
-
-  <hr>
-
-  <h4>Phase 3 · 语音通话</h4>
-  <div class="row"><a id="audioLink" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;color:#fff;background:#2563eb;border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px;transition:background 140ms">📞 加入语音房间</a></div>
-  <div class="hint">新标签页打开声网 Agora 语音房（顶层窗口，麦克风能用）。同一个 Doc 的辩手进同一个频道。</div>
-
-  <hr>
-
-  <h4>Phase 2 · Firebase 连接测试（多人同步前置）</h4>
-  <label>Firebase Realtime Database URL</label>
-  <input id="fbUrl" placeholder="https://<你的项目>.firebaseio.com">
-  <div class="row"><button class="primary" id="fbTestBtn">测试连接</button></div>
-  <div class="fb-result" id="fbResult">填入 databaseURL 后点测试。需要先在 Firebase 建个 Realtime Database 项目（见下方步骤）。</div>
-  <div class="hint">这是 Phase 2 多人同步的前置验证（集成了当初的 spike）。显示 "websocket ✓" 就能做跨辩手同步计时器/chat。</div>
-
   <script>
     var $ = function(id){ return document.getElementById(id); };
     var status = $('status');
@@ -232,44 +195,31 @@
         .generateCard(form);
     });
 
-    /* ---- Two timers: Prep + Debate (local + optional Firebase sync) ---- */
+    /* ---- Two timers: Prep + Debate (independent client-side countdowns) ---- */
     function makeTimer(prefix, defaultSec, name){
       var total=defaultSec, remaining=defaultSec, tickId=null, running=false;
       var disp=$(prefix+'Disp');
-      var sync = { connected:false, db:null, ref:null, mod:null };
       function fmt(s){ var m=Math.floor(s/60), x=s%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
       function render(){
         disp.textContent=fmt(remaining);
         disp.className='timer-display'+(remaining===0?' done':(remaining<=30?' warn':''));
       }
-      function writeSync(){ if(sync.connected && sync.ref){ sync.mod.set(sync.ref, {total:total, remaining:remaining, running:running}); } }
       function stop(){ running=false; if(tickId){ clearInterval(tickId); tickId=null; } }
       function start(){
         if(running||remaining<=0) return;
-        running=true; writeSync();
+        running=true;
         tickId=setInterval(function(){
           remaining--;
-          if(remaining<=0){ remaining=0; stop(); render(); writeSync(); setStatus(name+' ⏰ 时间到！','err'); return; }
-          render(); writeSync();
+          if(remaining<=0){ remaining=0; stop(); render(); setStatus(name+' ⏰ 时间到！','err'); return; }
+          render();
         },1000);
       }
-      function reset(){ stop(); remaining=total; render(); writeSync(); }
-      function setPreset(sec){ stop(); total=sec; remaining=sec; render(); writeSync(); }
-      function connect(db, mod, path){
-        sync.db=db; sync.mod=mod; sync.ref=mod.ref(db, path); sync.connected=true;
-        mod.onValue(sync.ref, function(snap){
-          var v = snap.val();
-          if (!v) return;
-          if (v.total != null) total = v.total;
-          if (v.remaining != null) remaining = v.remaining;
-          if (v.running === false && running) stop();
-          render();
-        });
-      }
+      function reset(){ stop(); remaining=total; render(); }
+      function setPreset(sec){ stop(); total=sec; remaining=sec; render(); }
       $(prefix+'Start').addEventListener('click', start);
-      $(prefix+'Pause').addEventListener('click', function(){ stop(); render(); writeSync(); });
+      $(prefix+'Pause').addEventListener('click', stop);
       $(prefix+'Reset').addEventListener('click', reset);
-      return { setPreset:setPreset, render:render, connect:connect };
+      return { setPreset:setPreset, render:render };
     }
     function addPresets(boxId, presets, timer){
       var box=$(boxId);
@@ -298,96 +248,6 @@
 
     prepTimer.render();
     debTimer.render();
-
-    /* ---- Phase 2: Firebase (connection test + synced timers) ---- */
-    var fbApp = null, fbMods = null, fbDb = null;
-    function setFbResult(msg, cls){ var r = $('fbResult'); r.textContent = msg; r.className = 'fb-result ' + (cls||''); }
-    function ensureFirebase(url){
-      if (fbDb && fbApp) { try { if (fbApp.options && fbApp.options.databaseURL === url) return Promise.resolve(fbDb); } catch(e){} }
-      // patch WebSocket once to detect transport (websocket vs long-polling)
-      if (!window._fbWsPatched){
-        var OrigWS = window.WebSocket;
-        window.WebSocket = function(u, protocols){
-          if (typeof u === 'string' && u.indexOf('firebaseio.com') >= 0){ window._fbWsSeen = true; }
-          return protocols !== undefined ? new OrigWS(u, protocols) : new OrigWS(u);
-        };
-        window.WebSocket.prototype = OrigWS.prototype;
-        window._fbWsPatched = true;
-      }
-      window._fbWsSeen = false;
-      return Promise.all([
-        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
-        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
-      ]).then(function(mods){
-        fbMods = mods;
-        try { if (fbApp) mods[0].deleteApp(fbApp); } catch (e) {}
-        fbApp = mods[0].initializeApp({ databaseURL: url });
-        fbDb = mods[1].getDatabase(fbApp);
-        return fbDb;
-      });
-    }
-    var currentRoundId = 'round-default';
-    function connectSync(url){
-      ensureFirebase(url).then(function(db){
-        var mod = fbMods[1];
-        google.script.run.withSuccessHandler(function(rid){
-          currentRoundId = rid;
-          prepTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/prep');
-          debTimer.connect(db, mod, 'pfdebate/rounds/'+rid+'/deb');
-          setFbResult('✓ 计时器同步已启用（round: '+rid+'）。聊天 + 赛程在独立窗口里（点上面"打开聊天+赛程窗口"）。', 'ok');
-        }).withFailureHandler(function(e){ setFbResult('round ID 获取失败：'+e.message, 'err'); }).getRoundId();
-      }).catch(function(e){ setFbResult('同步连接失败：'+e.message, 'err'); });
-    }
-    function testFirebase(){
-      var dbUrl = $('fbUrl').value.trim();
-      if (!dbUrl){ setFbResult('先填 databaseURL', 'err'); return; }
-      setFbResult('加载 Firebase SDK (ESM)…', '');
-      ensureFirebase(dbUrl).then(function(db){
-        var mod = fbMods[1];
-        var ref = mod.ref(db, 'pfdebate/test');
-        var myId = 'u' + Math.random().toString(36).slice(2,8);
-        mod.onValue(ref, function(snap){
-          var v = snap.val();
-          if (v && v.id !== myId){
-            setFbResult('✓ 收到对方消息：' + JSON.stringify(v) + '\n传输：' + (window._fbWsSeen ? 'websocket ✓' : 'long-polling'), 'ok');
-          }
-        });
-        mod.set(ref, { id: myId, msg: 'hello from ' + myId, t: Date.now() }).then(function(){
-          var transport = window._fbWsSeen ? 'websocket ✓' : 'long-polling（WebSocket 没通）';
-          setFbResult('已写入测试值。传输：' + transport, window._fbWsSeen ? 'ok' : 'warn');
-          if (window._fbWsSeen){
-            // spike passed → save URL + enable synced timers automatically
-            google.script.run.withSuccessHandler(function(){ connectSync(dbUrl); }).setFbUrl(dbUrl);
-          }
-        }).catch(function(e){ setFbResult('写入失败：' + e.message, 'err'); });
-      }).catch(function(e){ setFbResult('SDK 加载失败（ESM 可能被沙箱挡）：' + e.message, 'err'); });
-    }
-    $('fbTestBtn').addEventListener('click', testFirebase);
-
-    /* open the separate chat + round-phase window (WeChat-style) */
-    $('chatDialogBtn').addEventListener('click', function(){ google.script.run.showChatDialog(); });
-
-    /* Phase 3: real <a target=_blank> link to the GitHub Pages unified debate room.
-       Set a default href IMMEDIATELY so the link works even before round ID loads,
-       then update with real channel + fbUrl when both arrive (parallel, not nested). */
-    var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?channel=pfdebate-';
-    $('audioLink').href = AUDIO_PAGE + 'default'; // immediate fallback so click always opens
-    var _rid = null, _fbu = null;
-    function _updateAudioHref(){
-      if (_rid !== null && _fbu !== null){
-        $('audioLink').href = AUDIO_PAGE + _rid + (_fbu ? '&fbUrl=' + encodeURIComponent(_fbu) : '');
-      } else if (_rid !== null){
-        $('audioLink').href = AUDIO_PAGE + _rid;
-      }
-    }
-    google.script.run.withSuccessHandler(function(rid){ _rid = rid; _updateAudioHref(); })
-      .withFailureHandler(function(e){ setStatus('round ID 失败：'+e.message, 'err'); }).getRoundId();
-    google.script.run.withSuccessHandler(function(u){ _fbu = u; _updateAudioHref(); }).getFbUrl();
-
-    // on load: pre-fill saved Firebase URL + auto-enable sync if previously set
-    google.script.run.withSuccessHandler(function(url){
-      if (url){ $('fbUrl').value = url; connectSync(url); }
-    }).getFbUrl();
   </script>
 </body>
 </html>
