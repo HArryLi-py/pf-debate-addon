@@ -164,6 +164,11 @@
   <div class="row"><button class="primary" id="fbTestBtn">测试连接</button></div>
   <div class="fb-result" id="fbResult">填入 databaseURL 后点测试。</div>
 
+  <hr>
+
+  <h4>Phase 3 · 语音通话</h4>
+  <div class="row"><a id="audioLink" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;color:#fff;background:#2563eb;border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px">📞 加入语音房间</a></div>
+
   <script>
     var $ = function(id){ return document.getElementById(id); };
     var status = $('status');
@@ -337,6 +342,13 @@
     google.script.run.withSuccessHandler(function(url){
       if (url){ $('fbUrl').value = url; connectSync(url); }
     }).getFbUrl();
+
+    // Phase 3: set the audio room link href (just sets href, no complex JS)
+    var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?channel=pfdebate-';
+    $('audioLink').href = AUDIO_PAGE + 'default';
+    google.script.run.withSuccessHandler(function(rid){
+      $('audioLink').href = AUDIO_PAGE + rid;
+    }).getRoundId();
   </script>
 </body>
 </html>
