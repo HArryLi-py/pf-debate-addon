@@ -38,7 +38,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .avatar{width:96px;height:96px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:3px solid transparent;transition:.3s}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar video{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.avatar.speaking{border-color:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.5)}
+.avatar.speaking{border-color:#22c55e;box-shadow:0 0 16px rgba(34,197,94,.7);animation:avpulse 1.2s ease-in-out infinite}@keyframes avpulse{0%,100%{box-shadow:0 0 8px rgba(34,197,94,.4)}50%{box-shadow:0 0 20px rgba(34,197,94,.85)}}
 .avatar.muted{opacity:.4}
 .avatar.judge{width:72px;height:72px;font-size:24px;background:#f59e0b}
 .debater{text-align:center}
@@ -247,7 +247,7 @@ async function startRoom(){
     client.on('user-published',onPub);client.on('user-unpublished',onUnpub);client.on('user-left',function(){renderSeats()});
     client.on('token-privilege-will-expire',async function(){try{await client.renewToken(await mkToken(channel,myUid))}catch(e){}});
     var token=await mkToken(channel,myUid);await client.join(APP_ID,channel,token,myUid);
-    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);mic.setMuted(false);$('micBtn').textContent='🎤 静音';
+    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);mic.setMuted(true);$('micBtn').textContent='🎤 开麦';
     $('stLine').textContent='已加入 ✓ — 点 🎤 开麦说话';$('stLine').className='st ok';
     enforcePhase(curPhase);startAudioPoll();
   }catch(e){$('stLine').textContent='加入失败: '+e.message;$('stLine').className='st err'}
