@@ -95,7 +95,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 <div class="room" id="room">
   <div class="topic-bar">
     <div class="topic" id="topicText">等待裁判设置辩题…</div>
-    <div class="vs">Pro 正方 ◀ vs ▶ Con 反方</div>
+    <div class="vs">Pro 正方 ◀ vs ▶ Con 反方 · 房间 <span id="roomCode" style="color:#2563eb;font-weight:600"></span></div>
   </div>
   <div class="judge-row" id="judgeRow" style="display:none">
     <div class="debater"><div class="avatar judge" id="av-Judge">J</div><div class="audio-bar"><div class="audio-fill" id="bar-Judge"></div></div><div class="name" id="nm-Judge">裁判</div><div class="status" id="st-Judge">—</div><div class="perm" id="perm-Judge">操控 —</div></div>
@@ -228,7 +228,7 @@ async function startRoom(){
   if(myRole==='Judge'){$('judgeRow').style.display='flex'}
   // ALL users can control (for testing — not just Judge)
   $('judgeCtrl').style.display='flex';
-  renderSeats();$('stLine').textContent='加入音频…';
+  renderSeats();$('stLine').textContent='加入音频…';$('roomCode').textContent=channel;
   // Firebase listeners first — work even if Agora SDK fails to load (H4)
   fOn(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v&&typeof v==='number'){curPhase=v;enforcePhase(v);renderPhase()}});
   fOn(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderSeats()});
@@ -248,7 +248,7 @@ async function startRoom(){
     client.on('user-published',onPub);client.on('user-unpublished',onUnpub);client.on('user-left',function(){renderSeats()});
     client.on('token-privilege-will-expire',async function(){try{await client.renewToken(await mkToken(channel,myUid))}catch(e){}});
     var token=await mkToken(channel,myUid);await client.join(APP_ID,channel,token,myUid);
-    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);await mic.setMuted(true);$('micBtn').textContent='🎤 点击开麦';setupLocalVolume();
+    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);await mic.setMuted(true);$('micBtn').textContent='🔇 已静音';setupLocalVolume();
     $('stLine').textContent='已加入 ✓ — 点 🎤 开麦说话';$('stLine').className='st ok';
     enforcePhase(curPhase);startAudioPoll();
   }catch(e){$('stLine').textContent='加入失败: '+e.message;$('stLine').className='st err'}
@@ -334,9 +334,7 @@ function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInt
   var l=getLocalVolume()||(mic?mic.getVolumeLevel():0);
   var mp=$('micPulseFill');if(mp){var p=Math.min(100,l*300);mp.style.width=p+'%';mp.style.background=p>5?'#22c55e':'#cdd3e0'}
   var b=$('bar-'+myRole);if(b){var pct=Math.min(100,l*300);b.style.width=pct+'%';b.style.background=pct>5?'#22c55e':'#e0e0e0'}
-  var av=$('av-'+myRole);if(av){if(l>0.02){av.classList.add('speaking')}else if(!rule_pub_has(myRole)){av.classList.remove('speaking')}}
-  if(client)client.remoteUsers.forEach(function(u){if(u.audioTrack){var rl=u.audioTrack.getVolumeLevel();var r=roleOf(u.uid);var rb=$('bar-'+r);if(rb)rb.style.width=Math.min(100,rl*500)+'%';
-    var rav=$('av-'+r);if(rav){if(rl>0.03){rav.classList.add('speaking')}else if(!rule_pub_has(r)){rav.classList.remove('speaking')}}}})
+  if(client)client.remoteUsers.forEach(function(u){if(u.audioTrack){var rl=u.audioTrack.getVolumeLevel();var r=roleOf(u.uid);var rb=$('bar-'+r);if(rb)rb.style.width=Math.min(100,rl*500)+'%'}})
 },200)}
 function rule_pub_has(role){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];return rule.pub.includes(role)}
 /* Judge controls — check permission */
@@ -399,7 +397,7 @@ $('simBtn').onclick=function(){
 $('chatBtn').onclick=sendChat;$('chatInput').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();sendChat()}};
 function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput').value='';fPush(fr('rooms/'+channel+'/chat'),{uid:myUid,displayName:myName,text:t,ts:Date.now()})}
 /* Mic/Cam/Leave */
-$('micBtn').onclick=async function(){if(!mic)return;await mic.setMuted(!mic.muted);$('micBtn').textContent=mic.muted?'🎤 点击开麦':'🔇 点击静音';if(audioCtx&&audioCtx.state==='suspended'){try{await audioCtx.resume()}catch(e){}}};
+$('micBtn').onclick=async function(){if(!mic)return;await mic.setMuted(!mic.muted);$('micBtn').textContent=mic.muted?'🔇 已静音':'🎤 已开麦';if(audioCtx&&audioCtx.state==='suspended'){try{await audioCtx.resume()}catch(e){}}};
 $('camBtn').onclick=async function(){if(!myRole||myRole==='Audience'){$('stLine').textContent='观众不能开摄像头';$('stLine').className='st err';return}if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=false}catch(e){$('stLine').textContent='摄像头失败: '+e.message;$('stLine').className='st err';return}}camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';if(camEnabled){var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)}}else{var box2=$('av-'+myRole);if(box2){box2.innerHTML='';var occ=seats[myRole];if(occ)setAvatar(myRole,occ.avatar,occ.displayName);else box2.textContent=myRole==='Judge'?'J':myRole.slice(-1)}}enforcePhase(curPhase)};
 $('leaveBtn').onclick=function(){try{if(mic)mic.close()}catch(e){}try{if(cam)cam.close()}catch(e){}try{if(client)client.leave()}catch(e){}if(myRole&&myRole!=='Audience')fSet(fr('rooms/'+channel+'/seats/'+myRole),null);if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);$('stLine').textContent='已离开房间 — 可手动关闭此页面';$('stLine').className='st ok'};
 /* Switch seat — release current seat, go back to claim screen */
