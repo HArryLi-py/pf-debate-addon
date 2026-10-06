@@ -154,7 +154,8 @@ function setAvatar(role,url,name){
   var av=$('av-'+role);if(!av)return;
   var fb=(name||role).charAt(0).toUpperCase();
   if(url){av.innerHTML='';var img=document.createElement('img');img.src=url;img.onerror=function(){av.textContent=fb};av.appendChild(img)}
-  else{av.textContent=fb}
+  else if(!av.querySelector('video')){av.textContent=fb}
+  /* if a camera video track is already playing in this avatar, leave it alone — don't clobber with initials */
 }
 /* Config */
 var APP_ID='6fb557c64dc04c578ea45bbc0f29cac0',APP_CERT='8d95c2dad6214253b87e55592de978da';
@@ -381,7 +382,7 @@ $('chatBtn').onclick=sendChat;$('chatInput').onkeydown=function(e){if(e.key==='E
 function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput').value='';fPush(fr('rooms/'+channel+'/chat'),{uid:myUid,displayName:myName,text:t,ts:Date.now()})}
 /* Mic/Cam/Leave */
 $('micBtn').onclick=function(){if(!mic)return;var m=!mic.muted;mic.setMuted(m);$('micBtn').textContent=m?'🎤 静音':'🎤 开麦'};
-$('camBtn').onclick=async function(){if(!myRole||myRole==='Audience'){$('stLine').textContent='观众不能开摄像头';$('stLine').className='st err';return}if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=false}catch(e){$('stLine').textContent='摄像头失败: '+e.message;$('stLine').className='st err';return}}camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';if(camEnabled){var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)}}else{var box2=$('av-'+myRole);if(box2){var occ=seats[myRole];if(occ)setAvatar(myRole,occ.avatar,occ.displayName);else box2.textContent=myRole==='Judge'?'J':myRole.slice(-1)}}enforcePhase(curPhase)};
+$('camBtn').onclick=async function(){if(!myRole||myRole==='Audience'){$('stLine').textContent='观众不能开摄像头';$('stLine').className='st err';return}if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);cam.setMuted(true);camEnabled=false}catch(e){$('stLine').textContent='摄像头失败: '+e.message;$('stLine').className='st err';return}}camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';if(camEnabled){var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)}}else{var box2=$('av-'+myRole);if(box2){box2.innerHTML='';var occ=seats[myRole];if(occ)setAvatar(myRole,occ.avatar,occ.displayName);else box2.textContent=myRole==='Judge'?'J':myRole.slice(-1)}}enforcePhase(curPhase)};
 $('leaveBtn').onclick=function(){try{if(mic)mic.close()}catch(e){}try{if(cam)cam.close()}catch(e){}try{if(client)client.leave()}catch(e){}if(myRole&&myRole!=='Audience')fSet(fr('rooms/'+channel+'/seats/'+myRole),null);if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);$('stLine').textContent='已离开房间 — 可手动关闭此页面';$('stLine').className='st ok'};
 /* Switch seat — release current seat, go back to claim screen */
 $('switchBtn').onclick=async function(){
