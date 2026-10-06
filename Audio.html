@@ -35,12 +35,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .team.pro{background:#f0f4ff}.team.con{background:#fef0f0}
 .center-panel{flex:0 0 300px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:8px}
 /* Avatar */
-.avatar{width:64px;height:64px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:3px solid transparent;transition:.3s}
+.avatar{width:96px;height:96px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:3px solid transparent;transition:.3s}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar video{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar.speaking{border-color:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.5)}
 .avatar.muted{opacity:.4}
-.avatar.judge{width:48px;height:48px;font-size:18px;background:#f59e0b}
+.avatar.judge{width:72px;height:72px;font-size:24px;background:#f59e0b}
 .debater{text-align:center}
 .debater .name{font-size:13px;font-weight:600;color:#1a1a2e;margin-top:4px}
 .debater .role{font-size:10px;color:#888}
@@ -49,7 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .debater .perm{font-size:10px;margin-top:1px}.debater .perm.y{color:#22c55e}.debater .perm.n{color:#999}
 .perm-btn{background:#e0e0e0;border:0;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:#333}
 .perm-btn.on{background:#22c55e;color:#fff}.perm-btn.off{background:#ccc;color:#888}
-.audio-bar{width:64px;height:4px;background:#e0e0e0;border-radius:2px;margin-top:4px;overflow:hidden}
+.audio-bar{width:84px;height:8px;background:#e8ecf2;border-radius:4px;margin-top:6px;overflow:hidden;border:1px solid #cdd3e0}
 .audio-fill{height:100%;width:0;background:#22c55e;transition:width .1s}
 /* Timer */
 .timer-num{font-size:56px;font-weight:800;font-variant-numeric:tabular-nums;color:#1a1a2e;line-height:1}
@@ -247,7 +247,7 @@ async function startRoom(){
     client.on('user-published',onPub);client.on('user-unpublished',onUnpub);client.on('user-left',function(){renderSeats()});
     client.on('token-privilege-will-expire',async function(){try{await client.renewToken(await mkToken(channel,myUid))}catch(e){}});
     var token=await mkToken(channel,myUid);await client.join(APP_ID,channel,token,myUid);
-    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);mic.setMuted(true);
+    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);mic.setMuted(false);$('micBtn').textContent='🎤 静音';
     $('stLine').textContent='已加入 ✓ — 点 🎤 开麦说话';$('stLine').className='st ok';
     enforcePhase(curPhase);startAudioPoll();
   }catch(e){$('stLine').textContent='加入失败: '+e.message;$('stLine').className='st err'}
