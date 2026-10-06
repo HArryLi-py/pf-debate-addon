@@ -327,8 +327,8 @@ async function setupLocalVolume(){
     src.connect(analyser);
     var g=audioCtx.createGain();g.gain.value=0;analyser.connect(g);g.connect(audioCtx.destination);
     micFreqData=new Uint8Array(analyser.frequencyBinCount);
-    $('stLine').textContent='音量检测就绪 (ctx:'+audioCtx.state+')';
-    console.log('audio ctx:',audioCtx.state,'track:',track?track.label:'none');
+    $('stLine').textContent='音量检测 ctx:'+audioCtx.state+' track:'+(track?track.label.slice(0,20):'NONE');
+    console.log('AUDIO_DEBUG ctx:',audioCtx.state,'track:',track?track.label:'none','muted:',track?track.muted:'?');
   }catch(e){$('stLine').textContent='音量检测失败: '+e.message;$('stLine').className='st err';console.log('setup failed',e)}
 }
 function getLocalVolume(){if(!analyser)return 0;analyser.getByteFrequencyData(micFreqData);var s=0;for(var i=0;i<micFreqData.length;i++)s+=micFreqData[i];return s/micFreqData.length/255}
