@@ -49,7 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .debater .perm{font-size:10px;margin-top:1px}.debater .perm.y{color:#22c55e}.debater .perm.n{color:#999}
 .perm-btn{background:#e0e0e0;border:0;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:#333}
 .perm-btn.on{background:#22c55e;color:#fff}.perm-btn.off{background:#ccc;color:#888}
-.audio-bar{width:84px;height:8px;background:#e8ecf2;border-radius:4px;margin-top:6px;overflow:hidden;border:1px solid #cdd3e0}
+.audio-bar{width:84px;height:8px;background:#e8ecf2;border-radius:4px;margin-top:6px;overflow:hidden;border:1px solid #cdd3e0}.mic-pulse{width:100px;height:12px;background:#e8ecf2;border-radius:6px;overflow:hidden;border:1px solid #cdd3e0;margin:0 8px;flex-shrink:0}.mic-pulse-fill{height:100%;width:0;background:#22c55e;transition:width .08s}
 .audio-fill{height:100%;width:0;background:#22c55e;transition:width .1s}
 /* Timer */
 .timer-num{font-size:56px;font-weight:800;font-variant-numeric:tabular-nums;color:#1a1a2e;line-height:1}
@@ -138,7 +138,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
     <div class="chat-input"><input id="chatInput" placeholder="发消息…"><button id="chatBtn">发</button></div>
   </div>
   <div class="footer">
-    <button id="micBtn">🎤 静音</button>
+    <button id="micBtn">🎤 点击开麦</button>
+    <div class="mic-pulse" id="micPulse"><div class="mic-pulse-fill" id="micPulseFill"></div></div>
     <button id="camBtn">📹 摄像</button>
     <button id="switchBtn">🔄 换座位</button>
     <button id="simBtn">👥 模拟4人</button>
@@ -247,7 +248,7 @@ async function startRoom(){
     client.on('user-published',onPub);client.on('user-unpublished',onUnpub);client.on('user-left',function(){renderSeats()});
     client.on('token-privilege-will-expire',async function(){try{await client.renewToken(await mkToken(channel,myUid))}catch(e){}});
     var token=await mkToken(channel,myUid);await client.join(APP_ID,channel,token,myUid);
-    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);await mic.setMuted(true);$('micBtn').textContent='🎤 点击开麦';
+    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);await mic.setMuted(true);$('micBtn').textContent='🎤 点击开麦';setupLocalVolume();
     $('stLine').textContent='已加入 ✓ — 点 🎤 开麦说话';$('stLine').className='st ok';
     enforcePhase(curPhase);startAudioPoll();
   }catch(e){$('stLine').textContent='加入失败: '+e.message;$('stLine').className='st err'}
@@ -311,14 +312,27 @@ function renderChat(msgs){var l=$('chatList');l.innerHTML='';var keys=Object.key
     if(m.sys){d.className='chat-msg sys';d.textContent=m.text}
     else{d.className='chat-msg'+(m.uid===myUid?' me':'');d.innerHTML='<b>'+esc(m.displayName||'?')+':</b> '+esc(m.text)}
     l.appendChild(d)});l.scrollTop=l.scrollHeight}
+/* Web Audio local volume — independent of Agora track, only for the local pulse bar display. Does NOT affect call audio (still Agora publish/subscribe). */
+var audioCtx=null,analyser=null,micStream=null,micFreqData=null;
+async function setupLocalVolume(){
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended'){await audioCtx.resume()}
+    var src=audioCtx.createMediaStreamSource(micStream);
+    analyser=audioCtx.createAnalyser();analyser.fftSize=256;src.connect(analyser);
+    micFreqData=new Uint8Array(analyser.frequencyBinCount);
+    console.log('local volume ready');
+  }catch(e){console.log('local volume setup failed',e)}
+}
+function getLocalVolume(){if(!analyser)return 0;analyser.getByteFrequencyData(micFreqData);var s=0;for(var i=0;i<micFreqData.length;i++)s+=micFreqData[i];return s/micFreqData.length/255}
 function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInterval(function(){
-  // local mic — always poll (even if muted, getVolumeLevel may still show capture)
-  if(mic){var l=mic.getVolumeLevel();var b=$('bar-'+myRole);if(b){var pct=Math.min(100,l*1000);b.style.width=pct+'%';b.style.background=pct>5?'#22c55e':'#e0e0e0'}
-    // pulse avatar when actually speaking
-    var av=$('av-'+myRole);if(av){if(l>0.03&&!mic.muted){av.classList.add('speaking')}else if(!rule_pub_has(myRole)){av.classList.remove('speaking')}}}
-  // remote
-  if(client)client.remoteUsers.forEach(function(u){if(u.audioTrack){var l=u.audioTrack.getVolumeLevel();var r=roleOf(u.uid);var b=$('bar-'+r);if(b)b.style.width=Math.min(100,l*500)+'%';
-    var av=$('av-'+r);if(av){if(l>0.03){av.classList.add('speaking')}else if(!rule_pub_has(r)){av.classList.remove('speaking')}}}})
+  var l=getLocalVolume()||(mic?mic.getVolumeLevel():0);
+  var mp=$('micPulseFill');if(mp){var p=Math.min(100,l*300);mp.style.width=p+'%';mp.style.background=p>5?'#22c55e':'#cdd3e0'}
+  var b=$('bar-'+myRole);if(b){var pct=Math.min(100,l*300);b.style.width=pct+'%';b.style.background=pct>5?'#22c55e':'#e0e0e0'}
+  var av=$('av-'+myRole);if(av){if(l>0.02){av.classList.add('speaking')}else if(!rule_pub_has(myRole)){av.classList.remove('speaking')}}
+  if(client)client.remoteUsers.forEach(function(u){if(u.audioTrack){var rl=u.audioTrack.getVolumeLevel();var r=roleOf(u.uid);var rb=$('bar-'+r);if(rb)rb.style.width=Math.min(100,rl*500)+'%';
+    var rav=$('av-'+r);if(rav){if(rl>0.03){rav.classList.add('speaking')}else if(!rule_pub_has(r)){rav.classList.remove('speaking')}}}})
 },200)}
 function rule_pub_has(role){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];return rule.pub.includes(role)}
 /* Judge controls — check permission */
