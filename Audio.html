@@ -316,18 +316,20 @@ function renderChat(msgs){var l=$('chatList');l.innerHTML='';var keys=Object.key
 var audioCtx=null,analyser=null,micStream=null,micFreqData=null;
 async function setupLocalVolume(){
   try{
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended'){audioCtx.resume()}
     var track=null;
     if(mic&&mic.mediaStreamTrack){track=mic.mediaStreamTrack}
     else if(mic&&typeof mic.getMediaStreamTrack==='function'){track=mic.getMediaStreamTrack()}
     if(!track){micStream=await navigator.mediaDevices.getUserMedia({audio:true});track=micStream.getAudioTracks()[0]}
-    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==='suspended'){try{await audioCtx.resume()}catch(e){}}
     var src=audioCtx.createMediaStreamSource(new MediaStream([track]));
-    analyser=audioCtx.createAnalyser();analyser.fftSize=256;src.connect(analyser);
+    analyser=audioCtx.createAnalyser();analyser.fftSize=256;
+    src.connect(analyser);
+    var g=audioCtx.createGain();g.gain.value=0;analyser.connect(g);g.connect(audioCtx.destination);
     micFreqData=new Uint8Array(analyser.frequencyBinCount);
-    console.log('local volume ready, track:',track?track.label:'none');
-    $('stLine').textContent='音量检测就绪';
-  }catch(e){console.log('local volume setup failed',e);$('stLine').textContent='音量检测失败: '+e.message;$('stLine').className='st err'}
+    $('stLine').textContent='音量检测就绪 (ctx:'+audioCtx.state+')';
+    console.log('audio ctx:',audioCtx.state,'track:',track?track.label:'none');
+  }catch(e){$('stLine').textContent='音量检测失败: '+e.message;$('stLine').className='st err';console.log('setup failed',e)}
 }
 function getLocalVolume(){if(!analyser)return 0;analyser.getByteFrequencyData(micFreqData);var s=0;for(var i=0;i<micFreqData.length;i++)s+=micFreqData[i];return s/micFreqData.length/255}
 function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInterval(function(){
