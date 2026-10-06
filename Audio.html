@@ -248,7 +248,8 @@ async function startRoom(){
     client.on('user-published',onPub);client.on('user-unpublished',onUnpub);client.on('user-left',function(){renderSeats()});
     client.on('token-privilege-will-expire',async function(){try{await client.renewToken(await mkToken(channel,myUid))}catch(e){}});
     var token=await mkToken(channel,myUid);await client.join(APP_ID,channel,token,myUid);
-    mic=await AgoraRTC.createMicrophoneAudioTrack();await client.publish(mic);await mic.setMuted(true);$('micBtn').textContent='🔇 已静音';
+    var realMicId=null;try{var devs=await navigator.mediaDevices.enumerateDevices();var real=devs.filter(function(d){return d.kind==='audioinput'&&d.label&&d.label.indexOf('BlackHole')<0});if(real.length>0)realMicId=real[0].deviceId}catch(e){}
+    mic=await AgoraRTC.createMicrophoneAudioTrack(realMicId?{microphoneId:realMicId}:undefined);await client.publish(mic);await mic.setMuted(true);$('micBtn').textContent='🔇 已静音';
     $('stLine').textContent='已加入 ✓ — 点 🎤 开麦说话';$('stLine').className='st ok';
     enforcePhase(curPhase);startAudioPoll();
   }catch(e){$('stLine').textContent='加入失败: '+e.message;$('stLine').className='st err'}
@@ -321,7 +322,7 @@ async function setupLocalVolume(){
     var track=null;
     if(mic&&mic.mediaStreamTrack){track=mic.mediaStreamTrack}
     else if(mic&&typeof mic.getMediaStreamTrack==='function'){track=mic.getMediaStreamTrack()}
-    if(!track){micStream=await navigator.mediaDevices.getUserMedia({audio:true});track=micStream.getAudioTracks()[0]}
+    if(!track){var rmid=null;try{var ds=await navigator.mediaDevices.enumerateDevices();var rl=ds.filter(function(d){return d.kind==='audioinput'&&d.label&&d.label.indexOf('BlackHole')<0});if(rl.length>0)rmid=rl[0].deviceId}catch(e){};micStream=await navigator.mediaDevices.getUserMedia(rmid?{audio:{deviceId:{exact:rmid}}}:{audio:true});track=micStream.getAudioTracks()[0]}
     var src=audioCtx.createMediaStreamSource(new MediaStream([track]));
     analyser=audioCtx.createAnalyser();analyser.fftSize=256;
     src.connect(analyser);
