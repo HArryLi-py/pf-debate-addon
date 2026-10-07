@@ -21,8 +21,9 @@ function onOpen(e) {
   DocumentApp.getUi().createAddonMenu()
     .addItem('Open sidebar', 'showSidebar')
     .addSeparator()
-    .addItem('Title selection (27pt centered bold underline)', 'applyTitle')
-    .addItem('Block selection (24pt centered gray underline)', 'applyBlocks')
+    .addItem('Title selection (centered bold underline)', 'applyTitle')
+    .addItem('Block selection (centered gray underline)', 'applyBlocks')
+    .addItem('Normal text (13pt no bold no underline)', 'applyNormal')
     .addToUi();
 }
 function onInstall(e) { onOpen(e); }
@@ -66,7 +67,7 @@ function getRoundId() { try { return 'doc-' + DocumentApp.getActiveDocument().ge
 var SETTINGS_KEY = 'pf_settings';
 function getSettings() {
   var s = PropertiesService.getUserProperties().getProperty(SETTINGS_KEY);
-  return s ? JSON.parse(s) : { cardDestination: 'tab', language: 'zh' };
+  return s ? JSON.parse(s) : { cardDestination: 'tab', language: 'zh', titleSize: 27, blockSize: 24 };
 }
 function setSettings(settings) {
   PropertiesService.getUserProperties().setProperty(SETTINGS_KEY, JSON.stringify(settings));
@@ -99,35 +100,53 @@ function setMyAvatar(url) { PropertiesService.getUserProperties().setProperty(MY
    ListItem; falls back to cursor's paragraph. Styles both the selection runs
    and the whole paragraph so it works even on partial selections. */
 function applyTitle() {
+  var sz = getSettings().titleSize || 27;
   var doc = DocumentApp.getActiveDocument();
   var paras = _targetParagraphs(doc);
   var runs = _styleSelectionRuns(doc, function (t, s, e) {
-    t.setFontSize(s, e, 27).setBold(s, e, true).setUnderline(s, e, true).setForegroundColor(s, e, '#000000');
+    t.setFontSize(s, e, sz).setBold(s, e, true).setUnderline(s, e, true).setForegroundColor(s, e, '#000000');
   });
   paras.forEach(function (p) {
     try { p.setHeading(DocumentApp.ParagraphHeading.HEADING1); } catch (e) {}
     try { p.setAlignment(DocumentApp.HorizontalAlignment.CENTER); } catch (e) {}
-    try { var t = p.editAsText(); if (t) t.setFontSize(27).setBold(true).setUnderline(true).setForegroundColor('#000000'); } catch (e) {}
+    try { var t = p.editAsText(); if (t) t.setFontSize(sz).setBold(true).setUnderline(true).setForegroundColor('#000000'); } catch (e) {}
   });
   if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
-  return '标题 ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 27pt + 加粗 + 下划线 + 黑字 + 进大纲）';
+  return '标题 ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + ' + sz + 'pt + 加粗 + 下划线 + 黑字 + 进大纲）';
 }
 
 /* ====================== BUTTON 2: BLOCKS (选中→灰块) =====================
-   Whole paragraph → centered + 24pt + gray + underline. */
+   Whole paragraph → centered + gray + underline. Size from settings. */
 function applyBlocks() {
+  var sz = getSettings().blockSize || 24;
   var doc = DocumentApp.getActiveDocument();
   var paras = _targetParagraphs(doc);
   var runs = _styleSelectionRuns(doc, function (t, s, e) {
-    t.setFontSize(s, e, 24).setUnderline(s, e, true).setForegroundColor(s, e, '#666666');
+    t.setFontSize(s, e, sz).setUnderline(s, e, true).setForegroundColor(s, e, '#666666');
   });
   paras.forEach(function (p) {
     try { p.setHeading(DocumentApp.ParagraphHeading.HEADING2); } catch (e) {}
     try { p.setAlignment(DocumentApp.HorizontalAlignment.CENTER); } catch (e) {}
-    try { var t = p.editAsText(); if (t) t.setFontSize(24).setUnderline(true).setForegroundColor('#666666'); } catch (e) {}
+    try { var t = p.editAsText(); if (t) t.setFontSize(sz).setUnderline(true).setForegroundColor('#666666'); } catch (e) {}
   });
   if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
-  return 'blocks ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + 24pt + 灰字 + 下划线 + 进大纲 H2）';
+  return 'blocks ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（居中 + ' + sz + 'pt + 灰字 + 下划线 + 进大纲 H2）';
+}
+
+/* ====================== BUTTON 3: 写正文 (选中→正常文字) =====================
+   13pt, no bold, no underline, black. For body text after headings. */
+function applyNormal() {
+  var doc = DocumentApp.getActiveDocument();
+  var paras = _targetParagraphs(doc);
+  var runs = _styleSelectionRuns(doc, function (t, s, e) {
+    t.setFontSize(s, e, 13).setBold(s, e, false).setUnderline(s, e, false).setForegroundColor(s, e, '#000000');
+  });
+  paras.forEach(function (p) {
+    try { p.setHeading(DocumentApp.ParagraphHeading.NORMAL); } catch (e) {}
+    try { var t = p.editAsText(); if (t) t.setFontSize(13).setBold(false).setUnderline(false).setForegroundColor('#000000'); } catch (e) {}
+  });
+  if (!paras.length && !runs) throw new Error('没找到可改的段落。先在 Doc 里用鼠标拖选一段字，再点按钮。');
+  return '正文 ✓ 段落 ' + paras.length + ' / 文本段 ' + runs + '（13pt + 不加粗 + 不下划线 + 黑字）';
 }
 
 /** Style each text run in the current selection via fn(textRun, start, end). */

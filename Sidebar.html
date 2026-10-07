@@ -108,8 +108,9 @@
   <div class="macros">
     <button id="titleBtn">标题 Title</button>
     <button id="blocksBtn">blocks</button>
+    <button id="normalBtn">写正文</button>
   </div>
-  <div class="hint">标题 = 居中 27pt 加粗下划线（H1，进大纲）；blocks = 居中 灰字 24pt 下划线（H2，进大纲）。</div>
+  <div class="hint">标题 = 居中加粗下划线（H1，进大纲）；blocks = 居中灰字下划线（H2，进大纲）；写正文 = 13pt 不加粗不下划线（恢复正常文字）。</div>
 
   <hr>
 
@@ -170,6 +171,18 @@
   <div class="row"><input id="roomCode" placeholder="房间号/邀请码（留空用文档默认）" style="flex:1;padding:6px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px"></div>
   <div class="row"><a id="audioLink" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;color:#fff;background:#2563eb;border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px">📞 加入语音房间</a></div>
 
+  <hr>
+
+  <h4>设置</h4>
+  <label>标题字号 (pt)</label>
+  <input id="setTitleSize" type="number" value="27" style="width:80px">
+  <label>blocks 字号 (pt)</label>
+  <input id="setBlockSize" type="number" value="24" style="width:80px">
+  <label>语言</label>
+  <select id="setLang" style="width:100%"><option value="zh">中文</option><option value="en">English</option></select>
+  <div class="row"><button id="saveSettingsBtn">保存设置</button></div>
+  <div class="hint" id="settingsHint"></div>
+
   <script>
     var $ = function(id){ return document.getElementById(id); };
     var status = $('status');
@@ -192,6 +205,7 @@
 
     $('titleBtn').addEventListener('click', function(){ call('applyTitle'); });
     $('blocksBtn').addEventListener('click', function(){ call('applyBlocks'); });
+    $('normalBtn').addEventListener('click', function(){ call('applyNormal'); });
 
     var genBtn = $('genBtn');
     genBtn.addEventListener('click', function(){
@@ -349,6 +363,15 @@
     }
     updateAudioLink();
     $('roomCode').addEventListener('input', updateAudioLink);
+
+    /* ---- Settings: load + save ---- */
+    google.script.run.withSuccessHandler(function(s){
+      if(s){ $('setTitleSize').value=s.titleSize||27; $('setBlockSize').value=s.blockSize||24; $('setLang').value=s.language||'zh'; }
+    }).getSettings();
+    $('saveSettingsBtn').addEventListener('click', function(){
+      var s={titleSize:parseInt($('setTitleSize').value)||27, blockSize:parseInt($('setBlockSize').value)||24, language:$('setLang').value, cardDestination:'tab'};
+      google.script.run.withSuccessHandler(function(){ $('settingsHint').textContent='设置已保存 ✓'; }).setSettings(s);
+    });
   </script>
 </body>
 </html>
