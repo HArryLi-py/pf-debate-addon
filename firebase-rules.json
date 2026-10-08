@@ -1,0 +1,74 @@
+{
+  "rules": {
+    "rooms": {
+      "$channel": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "seats": {
+          "$role": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+          }
+        },
+        "timer": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "phase": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "chat": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "topic": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "permissions": {
+          "$role": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+          }
+        },
+        "proPrep": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "conPrep": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "micMode": {
+          "$role": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+          }
+        },
+        "audience": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "roster": {
+          "$uid": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+          }
+        }
+      }
+    },
+    "pfdebate": {
+      "rounds": {
+        "$rid": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      },
+      "test": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
