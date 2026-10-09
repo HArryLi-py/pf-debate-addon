@@ -185,7 +185,7 @@ var perms={};
 var autoAdvance=false,autoAdvanced=false; // role → true/false (default true if not set)
 function canControl(){return myRole!==null&&myRole!=='Audience'&&perms[myRole]!==false}
 var fb=null,fm=null,fd=null;
-async function ensureFB(url){if(fd)return fd;var m=await Promise.all([import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')]);fm=m;fd=m[1].getDatabase(m[0].initializeApp({databaseURL:url}));return fd}
+async function ensureFB(url){if(fd)return fd;var m=await Promise.all([import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js'),import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js')]);fm=m;var app=m[0].initializeApp({databaseURL:url});fd=m[1].getDatabase(app);try{await m[2].signInAnonymously(m[2].getAuth(app));console.log('anon auth ok')}catch(e){console.log('anon auth failed',e)}return fd}
 var roomListeners=[];function fr(p){return fm[1].ref(fd,p)}function fOn(r,cb){var u=fm[1].onValue(r,cb);roomListeners.push(u);return u}function fSet(r,v){fm[1].set(r,v)}function fPush(r,v){fm[1].push(r,v)}function fTxn(r,fn){fm[1].runTransaction(r,fn)}
 /* Claim */
 var claimStep=0;
