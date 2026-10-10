@@ -299,3 +299,39 @@ function _insertLinkAtCursor(doc, text, url) {
   var p = body.appendParagraph(text);
   p.editAsText().setLinkUrl(url);
 }
+
+/* ====================== P0: AGORA TOKEN SERVER-SIDE ======================
+   AccessToken2 minting on server. jsSHA.gs provides HMAC-SHA256.
+   Web App: doGet?channel=xxx&uid=123 → {token, appId}
+   App Certificate stays in Code.gs — never exposed to front-end. */
+var AGORA_APP_ID = '6fb557c64dc04c578ea45bbc0f29cac0';
+var AGORA_APP_CERT = '8d95c2dad6214253b87e55592de978da';
+
+function _agoraHmac(keyBytes, msgBytes) {
+  var sha = new jsSHA("SHA-256", "ARRAY");
+  sha.setHMACKey(keyBytes, "ARRAY");
+  var hmacHex = sha.getHMAC(msgBytes, "ARRAY", "HEX");
+  return hmacHex.match(/.{2}/g).map(function(h) { return parseInt(h, 16); });
+}
+function _agoraBB() { var b = []; this.u16 = function(v) { b.push(v & 255, v >> 8 & 255); return this; }; this.u32 = function(v) { b.push(v & 255, v >> 8 & 255, v >> 16 & 255, v >>> 24 & 255); return this; }; this.bytes = function(a) { this.u16(a.length); for (var i = 0; i < a.length; i++) b.push(a[i] & 255); return this; }; this.str = function(s) { var u = unescape(encodeURIComponent(s)); var a = []; for (var i = 0; i < u.length; i++) a.push(u.charCodeAt(i)); return this.bytes(a); }; this.map32 = function(m) { var k = Object.keys(m); this.u16(k.length); for (var i = 0; i < k.length; i++) { this.u16(parseInt(k[i], 10)); this.u32(m[k[i]]); } return this; }; this.pack = function() { return b; }; return this; }
+function _agoraCat(arrs) { var t = 0; arrs.forEach(function(a) { t += a.length; }); var o = new Array(t); var f = 0; arrs.forEach(function(a) { for (var i = 0; i < a.length; i++) o[f++] = a[i]; }); return o; }
+function _agoraAdler(b) { var a = 1, c = 0; for (var i = 0; i < b.length; i++) { a = (a + b[i]) % 65521; c = (c + a) % 65521; } return ((c << 16) | a) >>> 0; }
+function _agoraZlibDef(d) { var l = d.length, n = (~l) & 65535, o = [120, 1, 1, l & 255, l >> 8 & 255, n & 255, n >> 8 & 255]; for (var i = 0; i < l; i++) o.push(d[i]); var ad = _agoraAdler(d); o.push(ad >>> 24 & 255, ad >> 16 & 255, ad >> 8 & 255, ad & 255); return o; }
+function _agoraPackSvc(cn, uid, exp) { var t = new _agoraBB().u16(1).pack(); var p = { 1: exp, 2: exp, 3: exp, 4: exp }; var pb = new _agoraBB().map32(p).pack(); var cnb = new _agoraBB().str(cn).pack(); var ub = new _agoraBB().str(uid === 0 ? '' : String(uid)).pack(); return _agoraCat([t, pb, cnb, ub]); }
+function _utf8Bytes(s) { var u = unescape(encodeURIComponent(s)); var a = []; for (var i = 0; i < u.length; i++) a.push(u.charCodeAt(i)); return a; }
+function _agoraMkToken(cn, uid) {
+  var ts = Math.floor(Date.now() / 1000), exp = 3600, salt = Math.floor(Math.random() * 99999999) + 1;
+  var s1 = _agoraHmac(new _agoraBB().u32(ts).pack(), _utf8Bytes(AGORA_APP_CERT));
+  var sg = _agoraHmac(new _agoraBB().u32(salt).pack(), s1);
+  var svc = _agoraPackSvc(cn, uid, exp);
+  var si = _agoraCat([new _agoraBB().str(AGORA_APP_ID).u32(ts).u32(exp).u32(salt).u16(1).pack(), svc]);
+  var sig = _agoraHmac(sg, si);
+  var ct = _agoraCat([new _agoraBB().bytes(sig).pack(), si]);
+  return '007' + Utilities.base64Encode(_agoraZlibDef(ct));
+}
+function doGet(e) {
+  var channel = (e && e.parameter && e.parameter.channel) || 'pfdebate-default';
+  var uid = parseInt((e && e.parameter && e.parameter.uid) || '0', 10);
+  var token = _agoraMkToken(channel, uid);
+  return ContentService.createTextOutput(JSON.stringify({ token: token, appId: AGORA_APP_ID })).setMimeType(ContentService.MimeType.JSON);
+}

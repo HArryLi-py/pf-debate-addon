@@ -160,23 +160,21 @@ function setAvatar(role,url,name){
   /* if a camera video track is already playing in this avatar, leave it alone — don't clobber with initials */
 }
 /* Config */
-var APP_ID='6fb557c64dc04c578ea45bbc0f29cac0',APP_CERT='8d95c2dad6214253b87e55592de978da';
+var APP_ID='6fb557c64dc04c578ea45bbc0f29cac0';
 var UID={'Pro-1':101,'Pro-2':102,'Con-1':201,'Con-2':202,'Judge':301,'Audience':401};
 var ROLE_OF={101:'Pro-1',102:'Pro-2',201:'Con-1',202:'Con-2',301:'Judge'};
 var PHASES=[{n:1,name:'Pro Constructive',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:2,name:'Con Constructive',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:3,name:'First Crossfire',pub:['Pro-1','Con-1'],sub:{'Pro-1':['Con-1'],'Pro-2':'all','Con-1':['Pro-1'],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:4,name:'Pro Rebuttal',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:240},{n:5,name:'Con Rebuttal',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:240},{n:6,name:'Second Crossfire',pub:['Pro-2','Con-2'],sub:{'Pro-1':'all','Pro-2':['Con-2'],'Con-1':'all','Con-2':['Pro-2'],'Judge':'all','Audience':'all'},sec:180},{n:7,name:'Pro Summary',pub:['Pro-1'],sub:{'Pro-1':[],'Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:8,name:'Con Summary',pub:['Con-1'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':[],'Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:9,name:'Grand Crossfire',pub:['Pro-1','Pro-2','Con-1','Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:180},{n:10,name:'Pro Final Focus',pub:['Pro-2'],sub:{'Pro-1':'all','Pro-2':[],'Con-1':'all','Con-2':'all','Judge':'all','Audience':'all'},sec:120},{n:11,name:'Con Final Focus',pub:['Con-2'],sub:{'Pro-1':'all','Pro-2':'all','Con-1':'all','Con-2':[],'Judge':'all','Audience':'all'},sec:120}];
 /* Prep is NOT a phase — it's a per-team cumulative 3:00 resource usable between speeches (NSDA 2025-2026). Audio routing when a team's Prep is running: only hear teammate. */
 var PREP_SUB={'Pro-1':['Pro-2'],'Pro-2':['Pro-1'],'Con-1':['Con-2'],'Con-2':['Con-1'],'Judge':[],'Audience':[]};
 var PREP_SEC=180;
-/* Token port */
-function utf8B(s){var u=unescape(encodeURIComponent(s)),b=[];for(var i=0;i<u.length;i++)b.push(u.charCodeAt(i));return b}
-function cat(a){var t=0;a.forEach(function(x){t+=x.length});var o=new Uint8Array(t),f=0;a.forEach(function(x){o.set(x,f);f+=x.length});return o}
-function b64(b){var s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s)}
-function BB(){var b=[];this.u16=function(v){b.push(v&255,v>>8&255);return this};this.u32=function(v){b.push(v&255,v>>8&255,v>>16&255,v>>>24&255);return this};this.bytes=function(a){var r=a instanceof Uint8Array?Array.from(a):a;this.u16(r.length);for(var i=0;i<r.length;i++)b.push(r[i]&255);return this};this.str=function(s){return this.bytes(utf8B(s))};this.map32=function(m){var k=Object.keys(m);this.u16(k.length);for(var i=0;i<k.length;i++){this.u16(parseInt(k[i],10));this.u32(m[k[i]])}return this};this.pack=function(){return new Uint8Array(b)};return this}
-async function hmac(k,m){var ck=await crypto.subtle.importKey('raw',k instanceof Uint8Array?k:new Uint8Array(k),{name:'HMAC',hash:'SHA-256'},false,['sign']);return new Uint8Array(await crypto.subtle.sign('HMAC',ck,m instanceof Uint8Array?m:new Uint8Array(m)))}
-function adler(b){var a=1,c=0;for(var i=0;i<b.length;i++){a=(a+b[i])%65521;c=(c+a)%65521}return((c<<16)|a)>>>0}
-function zlibDef(d){var l=d.length,n=(~l)&65535,o=[120,1,1,l&255,l>>8&255,n&255,n>>8&255];for(var i=0;i<l;i++)o.push(d[i]);var ad=adler(d);o.push(ad>>>24&255,ad>>16&255,ad>>8&255,ad&255);return new Uint8Array(o)}
-function packSvc(cn,uid,exp){var t=new BB().u16(1).pack();var p={1:exp,2:exp,3:exp,4:exp};var pb=new BB().map32(p).pack();var cnb=new BB().str(cn).pack();var ub=new BB().str(uid===0?'':String(uid)).pack();return cat([t,pb,cnb,ub])}
-async function mkToken(cn,uid){var ts=Math.floor(Date.now()/1000),exp=3600,salt=Math.floor(Math.random()*99999999)+1;var s1=await hmac(new BB().u32(ts).pack(),utf8B(APP_CERT));var sg=await hmac(new BB().u32(salt).pack(),s1);var svc=packSvc(cn,uid,exp);var si=cat([new BB().str(APP_ID).u32(ts).u32(exp).u32(salt).u16(1).pack(),svc]);var sig=await hmac(sg,si);var ct=cat([new BB().bytes(sig).pack(),si]);return'007'+b64(zlibDef(ct))}
+/* Token — fetch from server (Code.gs Web App). App Cert stays in Code.gs, not here. */
+async function mkToken(cn,uid){
+  var url=typeof WEB_APP_URL!=='undefined'?WEB_APP_URL:'';
+  if(!url) throw new Error('WEB_APP_URL not set in firebase-config.js');
+  var resp=await fetch(url+'?channel='+encodeURIComponent(cn)+'&uid='+uid);
+  var d=await resp.json();
+  return d.token;
+}
 /* State */
 var params=new URLSearchParams(location.search);var channel=params.get('channel')||'pfdebate-default';var fbUrl=params.get('fbUrl')||'';
 var myRole=null,myUid=0,myName='',myAvatar='';var seats={},curPhase=1,desiredSub=new Set();
