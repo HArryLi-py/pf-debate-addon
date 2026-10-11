@@ -50,16 +50,16 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
 .team.pro{background:#e8f0fe}.team.con{background:#fce8e6}
 .center-panel{flex:0 0 300px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:8px}
 /* Avatar */
-.avatar{width:96px;height:96px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:2px solid transparent;transition:.3s}
+.avatar{width:112px;height:112px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:2px solid transparent;transition:.3s}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar video{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar.speaking{border-color:var(--ok);box-shadow:0 0 16px rgba(52,168,83,.7);animation:avpulse 1.2s ease-in-out infinite}@keyframes avpulse{0%,100%{box-shadow:0 0 8px rgba(52,168,83,.4)}50%{box-shadow:0 0 20px rgba(52,168,83,.85)}}
 .avatar.muted{opacity:.4}
-.avatar.judge{width:72px;height:72px;font-size:24px;background:var(--judge);color:#5f4500}
+.avatar.judge{width:84px;height:84px;font-size:28px;background:var(--judge);color:#5f4500}
 .debater{text-align:center}
-.debater .name{font-size:13px;font-weight:600;color:var(--fg);margin-top:4px}
-.debater .role{font-size:10px;color:var(--muted)}
-.debater .status{font-size:10px;margin-top:2px}
+.debater .name{font-size:16px;font-weight:600;color:var(--fg);margin-top:6px}
+.debater .role{font-size:12px;color:var(--muted)}
+.debater .status{font-size:12px;margin-top:2px}
 .debater .status.on{color:var(--ok)}.debater .status.off{color:#999}
 .debater .perm{font-size:10px;margin-top:1px}.debater .perm.y{color:var(--ok)}.debater .perm.n{color:#999}
 .perm-btn{background:#f1f3f4;border:0;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--fg);transition:.15s}
@@ -133,7 +133,7 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
     <div class="team pro">
       <div class="debater"><div class="avatar" id="av-Pro-1">P1</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-1"></div></div><div class="name" id="nm-Pro-1">空</div><div class="role">Pro-1 一辩</div><div class="status" id="st-Pro-1">—</div></div>
       <div class="debater"><div class="avatar" id="av-Pro-2">P2</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-2"></div></div><div class="name" id="nm-Pro-2">空</div><div class="role">Pro-2 二辩</div><div class="status" id="st-Pro-2">—</div></div>
-      <div style="font-size:12px;color:var(--pro);font-weight:600;text-align:center;padding:4px" id="proPrep">Prep: 3:00</div>
+      <div style="font-size:16px;color:var(--pro);font-weight:600;text-align:center;padding:6px" id="proPrep">Prep: 3:00</div>
     </div>
     <div class="center-panel">
       <div class="timer-num" id="timerNum">--:--</div>
@@ -158,7 +158,7 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
     <div class="team con">
       <div class="debater"><div class="avatar" id="av-Con-1">C1</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-1"></div></div><div class="name" id="nm-Con-1">空</div><div class="role">Con-1 一辩</div><div class="status" id="st-Con-1">—</div></div>
       <div class="debater"><div class="avatar" id="av-Con-2">C2</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-2"></div></div><div class="name" id="nm-Con-2">空</div><div class="role">Con-2 二辩</div><div class="status" id="st-Con-2">—</div></div>
-      <div style="font-size:12px;color:var(--con);font-weight:600;text-align:center;padding:4px" id="conPrep">Prep: 3:00</div>
+      <div style="font-size:16px;color:var(--con);font-weight:600;text-align:center;padding:6px" id="conPrep">Prep: 3:00</div>
     </div>
   </div>
   <div class="chat-bar">
