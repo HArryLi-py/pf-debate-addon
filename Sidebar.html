@@ -352,10 +352,11 @@
     var AUDIO_PAGE = 'https://harryli-py.github.io/pf-debate-addon/Audio.html?v=' + Date.now() + '&channel=pfdebate-';
     function updateAudioLink(){
       var rc = ($('roomCode').value||'').trim();
+      var lang = $('setLang') ? $('setLang').value : 'en';
       google.script.run.withSuccessHandler(function(rid){
         var chan = rc || rid;
         google.script.run.withSuccessHandler(function(fb){
-          var href = AUDIO_PAGE + chan;
+          var href = AUDIO_PAGE + chan + '&lang=' + lang;
           if (fb){ href += '&fbUrl=' + encodeURIComponent(fb); }
           $('audioLink').href = href;
         }).getFbUrl();

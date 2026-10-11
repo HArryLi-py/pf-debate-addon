@@ -50,16 +50,16 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
 .team.pro{background:#e8f0fe}.team.con{background:#fce8e6}
 .center-panel{flex:0 0 300px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:8px}
 /* Avatar */
-.avatar{width:112px;height:112px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:2px solid transparent;transition:.3s}
+.avatar{width:128px;height:128px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:2px solid transparent;transition:.3s}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar video{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar.speaking{border-color:var(--ok);box-shadow:0 0 16px rgba(52,168,83,.7);animation:avpulse 1.2s ease-in-out infinite}@keyframes avpulse{0%,100%{box-shadow:0 0 8px rgba(52,168,83,.4)}50%{box-shadow:0 0 20px rgba(52,168,83,.85)}}
 .avatar.muted{opacity:.4}
-.avatar.judge{width:84px;height:84px;font-size:28px;background:var(--judge);color:#5f4500}
+.avatar.judge{width:96px;height:96px;font-size:32px;background:var(--judge);color:#5f4500}
 .debater{text-align:center}
-.debater .name{font-size:16px;font-weight:600;color:var(--fg);margin-top:6px}
-.debater .role{font-size:12px;color:var(--muted)}
-.debater .status{font-size:12px;margin-top:2px}
+.debater .name{font-size:18px;font-weight:600;color:var(--fg);margin-top:6px}
+.debater .role{font-size:14px;color:var(--muted)}
+.debater .status{font-size:14px;margin-top:2px}
 .debater .status.on{color:var(--ok)}.debater .status.off{color:#999}
 .debater .perm{font-size:10px;margin-top:1px}.debater .perm.y{color:var(--ok)}.debater .perm.n{color:#999}
 .perm-btn{background:#f1f3f4;border:0;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--fg);transition:.15s}
@@ -124,7 +124,7 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
 <div class="room" id="room">
   <div class="topic-bar">
     <div class="topic" id="topicText">等待裁判设置辩题…</div>
-    <div class="vs">Pro 正方 ◀ vs ▶ Con 反方 · 房间 <span id="roomCode" style="color:var(--pro);font-weight:600"></span></div>
+    <div class="vs" id="vsLabel">Pro 正方 ◀ vs ▶ Con 反方 · 房间 <span id="roomCode" style="color:var(--pro);font-weight:600"></span></div>
   </div>
   <div class="judge-row" id="judgeRow" style="display:none">
     <div class="debater"><div class="avatar judge" id="av-Judge">J</div><div class="audio-bar"><div class="audio-fill" id="bar-Judge"></div></div><div class="name" id="nm-Judge">裁判</div><div class="status" id="st-Judge">—</div><div class="perm" id="perm-Judge">操控 —</div></div>
@@ -133,7 +133,7 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
     <div class="team pro">
       <div class="debater"><div class="avatar" id="av-Pro-1">P1</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-1"></div></div><div class="name" id="nm-Pro-1">空</div><div class="role">Pro-1 一辩</div><div class="status" id="st-Pro-1">—</div></div>
       <div class="debater"><div class="avatar" id="av-Pro-2">P2</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-2"></div></div><div class="name" id="nm-Pro-2">空</div><div class="role">Pro-2 二辩</div><div class="status" id="st-Pro-2">—</div></div>
-      <div style="font-size:16px;color:var(--pro);font-weight:600;text-align:center;padding:6px" id="proPrep">Prep: 3:00</div>
+      <div style="font-size:18px;color:var(--pro);font-weight:600;text-align:center;padding:6px" id="proPrep">Prep: 3:00</div>
     </div>
     <div class="center-panel">
       <div class="timer-num" id="timerNum">--:--</div>
@@ -151,18 +151,18 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
       </div>
       <input id="topicInput" placeholder="辩题（所有人可设置）" style="width:260px;border:1px solid #d0d4e0;border-radius:6px;padding:4px 8px;font-size:12px;margin-top:4px">
       <div id="permPanel" style="margin-top:8px;text-align:center">
-        <div style="font-size:11px;color:#888;margin-bottom:4px">操控权限（主持人/Judge 管理）</div>
+        <div style="font-size:11px;color:#888;margin-bottom:4px" id="permLabel">操控权限（主持人/Judge 管理）</div>
         <div id="permBtns" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center"></div>
       </div>
     </div>
     <div class="team con">
       <div class="debater"><div class="avatar" id="av-Con-1">C1</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-1"></div></div><div class="name" id="nm-Con-1">空</div><div class="role">Con-1 一辩</div><div class="status" id="st-Con-1">—</div></div>
       <div class="debater"><div class="avatar" id="av-Con-2">C2</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-2"></div></div><div class="name" id="nm-Con-2">空</div><div class="role">Con-2 二辩</div><div class="status" id="st-Con-2">—</div></div>
-      <div style="font-size:16px;color:var(--con);font-weight:600;text-align:center;padding:6px" id="conPrep">Prep: 3:00</div>
+      <div style="font-size:18px;color:var(--con);font-weight:600;text-align:center;padding:6px" id="conPrep">Prep: 3:00</div>
     </div>
   </div>
   <div class="chat-bar">
-    <div class="chat-head">聊天</div>
+    <div class="chat-head" id="chatHead">聊天</div>
     <div class="chat-list" id="chatList"></div>
     <div class="chat-input"><input id="chatInput" placeholder="发消息…"><button id="chatBtn">发</button></div>
   </div>
@@ -180,6 +180,41 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
 
 <script>
 var $=function(id){return document.getElementById(id)};
+/* I18N — language system. LANG from URL param or firebase-config.js. Default 'en'. */
+var LANG=params&&params.get('lang')||(typeof LANG!=='undefined'?LANG:'en');
+var I18N={
+  en:{profile:'Profile',yourName:'Your name',avatarUrl:'Avatar URL (optional)',loading:'Loading…',resetSeats:'Reset Seats',connectFb:'Connect Firebase',fbNeeded:'Firebase URL required — paste below',connecting:'Connecting…',fbConnected:'Firebase connected ✓ — Enter name and pick side',fbFailed:'Firebase failed: ',fbPrompt:'https://your-project.firebaseio.com',waitingTopic:'Waiting for judge to set topic…',vs:'Pro ◀ vs ▶ Con',room:'Room',waitingStart:'Waiting to start',current:'Current: ',speaking:'Speaking: ',chat:'Chat',typeMsg:'Type a message…',send:'Send',micAll:'🎤 All',micTeam:'🎤 Team',cam:'📹 Camera',switchSeat:'🔄 Switch',sim4:'👥 Sim 4',leave:'Leave',ready:'Ready',joined:'Joined ✓ — click mic to speak',joining:'Joining audio…',sdkNotLoaded:'Agora SDK not loaded — schedule/timer/chat work, no voice',joinFailed:'Join failed: ',noPerm:'No control permission (Judge hasn\'t granted)',audienceNoCam:'Audience can\'t use camera',permPanel:'Controls (managed by Judge)',topicInput:'Topic (anyone can set)',nextSide:'Next: Choose side →',chooseSide:'Choose Side',pro:'Pro',con:'Con',judge:'Judge',audience:'Audience',proSelect:'Pro — Select Debater',conSelect:'Con — Select Debater',back:'← Back',seatTaken:'Seat taken — click Reset Seats',seatOccupied:'Seat occupied',fbWriteFail:'Firebase write failed: ',proPrepStart:'Pro Prep started',conPrepStart:'Con Prep started',prepStopped:'Prep stopped',leftRoom:'Left room — you can close this page',micAllOn:'🔇 All Mute',micTeamOn:'🔇 Team Mute',proPrep:'Pro Prep',conPrep:'Con Prep',stopPrep:'⏹ Stop Prep',autoAdv:'🔗 Auto',autoAdvOn:'🔗 ✓',firstSpk:'First Speaker',secondSpk:'Second Speaker',debater1:'First Speaker',debater2:'Second Speaker',empty:'Empty',seatClaimed:'Seat claimed',volReady:'Volume ready',volFailed:'Volume detection failed: ',simDone:'Simulated 4 debaters ✓',seatsReset:'Seats + timer + Prep reset ✓',fbNotConn:'Firebase not connected',resetClaim:'Switch seat — reselect'},
+  zh:{profile:'个人资料',yourName:'你的名字',avatarUrl:'头像 URL（可选，留空用首字母）',loading:'加载中…',resetSeats:'重置席位',connectFb:'连接 Firebase',fbNeeded:'需要 Firebase URL — 在下面粘贴（只需一次）',connecting:'连接 Firebase…',fbConnected:'Firebase 已连 ✓ — 填名字选阵营',fbFailed:'Firebase 失败: ',fbPrompt:'https://你的项目.firebaseio.com',waitingTopic:'等待裁判设置辩题…',vs:'Pro 正方 ◀ vs ▶ Con 反方',room:'房间',waitingStart:'等待开始',current:'当前: ',speaking:'开麦: ',chat:'聊天',typeMsg:'发消息…',send:'发',micAll:'🎤 全员',micTeam:'🎤 队内',cam:'📹 摄像',switchSeat:'🔄 换座位',sim4:'👥 模拟4人',leave:'离开',ready:'Ready',joined:'已加入 ✓ — 点 🎤 开麦说话',joining:'加入音频…',sdkNotLoaded:'Agora SDK 没加载 — 赛程/计时/聊天可用，无语音',joinFailed:'加入失败: ',noPerm:'没有操控权限（主持人没给你）',audienceNoCam:'观众不能开摄像头',permPanel:'操控权限（主持人/Judge 管理）',topicInput:'辩题（所有人可设置）',nextSide:'下一步：选阵营 →',chooseSide:'选择阵营',pro:'正方 Pro',con:'反方 Con',judge:'裁判 Judge',audience:'观众 Audience',proSelect:'正方 — 选辩手',conSelect:'反方 — 选辩手',back:'← 返回',seatTaken:'席位被占了，点"重置席位"再试',seatOccupied:'席位已占用',fbWriteFail:'Firebase 写入失败: ',proPrepStart:'正方 Prep 已开始',conPrepStart:'反方 Prep 已开始',prepStopped:'Prep 已停止',leftRoom:'已离开房间 — 可手动关闭此页面',micAllOn:'🔇 全员静',micTeamOn:'🔇 队内静',proPrep:'正方 Prep',conPrep:'反方 Prep',stopPrep:'⏹ 停止 Prep',autoAdv:'🔗 连续',autoAdvOn:'🔗 ✓',firstSpk:'一辩',secondSpk:'二辩',debater1:'一辩',debater2:'二辩',empty:'空',seatClaimed:'席位已占',volReady:'音量检测就绪',volFailed:'音量检测失败: ',simDone:'已模拟4人 ✓',seatsReset:'席位+计时器+Prep 已重置 ✓',fbNotConn:'Firebase 没连',resetClaim:'换座位 — 重新选择'}
+};
+function t(k){return (I18N[LANG]&&I18N[LANG][k])||I18N.en[k]||k}
+function applyLang(){
+  $('claimTitle').textContent=t('profile');
+  $('pfName').placeholder=t('yourName');
+  $('pfAvatar').placeholder=t('avatarUrl');
+  $('claimStatus').textContent=t('loading');
+  $('resetBtn').textContent=t('resetSeats');
+  $('topicText').textContent=t('waitingTopic');
+  $('nowSpeaking').textContent=t('waitingStart');
+  $('chatBtn').textContent=t('send');
+  $('chatInput').placeholder=t('typeMsg');
+  $('micAllBtn').textContent=t('micAll');
+  $('micTeamBtn').textContent=t('micTeam');
+  $('camBtn').textContent=t('cam');
+  $('switchBtn').textContent=t('switchSeat');
+  $('simBtn').textContent=t('sim4');
+  $('leaveBtn').textContent=t('leave');
+  $('stLine').textContent=t('ready');
+  $('topicInput').placeholder=t('topicInput');
+  $('fbManual').placeholder=t('fbPrompt');
+  $('vsLabel').innerHTML=t('vs')+' · '+t('room')+' <span id="roomCode" style="color:var(--pro);font-weight:600"></span>';
+  $('chatHead').textContent=t('chat');
+  $('permLabel').textContent=t('permPanel');
+  $('proPrepBtn').textContent=t('proPrep');
+  $('conPrepBtn').textContent=t('conPrep');
+  $('stopPrepBtn').textContent=t('stopPrep');
+  $('autoAdvBtn').textContent=t('autoAdv');
+}
+applyLang();
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function setAvatar(role,url,name){
   var av=$('av-'+role);if(!av)return;
