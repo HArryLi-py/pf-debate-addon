@@ -308,9 +308,9 @@ var AGORA_APP_ID = '6fb557c64dc04c578ea45bbc0f29cac0';
 var AGORA_APP_CERT = '8d95c2dad6214253b87e55592de978da';
 
 function _agoraHmac(keyBytes, msgBytes) {
-  var sha = new jsSHA("SHA-256", "ARRAY");
-  sha.setHMACKey(keyBytes, "ARRAY");
-  var hmacHex = sha.getHMAC(msgBytes, "ARRAY", "HEX");
+  var sha = new jsSHA("SHA-256", "UINT8ARRAY");
+  sha.setHMACKey(new Uint8Array(keyBytes), "UINT8ARRAY");
+  var hmacHex = sha.getHMAC(new Uint8Array(msgBytes), "UINT8ARRAY", "HEX");
   return hmacHex.match(/.{2}/g).map(function(h) { return parseInt(h, 16); });
 }
 function _agoraBB() { var b = []; this.u16 = function(v) { b.push(v & 255, v >> 8 & 255); return this; }; this.u32 = function(v) { b.push(v & 255, v >> 8 & 255, v >> 16 & 255, v >>> 24 & 255); return this; }; this.bytes = function(a) { this.u16(a.length); for (var i = 0; i < a.length; i++) b.push(a[i] & 255); return this; }; this.str = function(s) { var u = unescape(encodeURIComponent(s)); var a = []; for (var i = 0; i < u.length; i++) a.push(u.charCodeAt(i)); return this.bytes(a); }; this.map32 = function(m) { var k = Object.keys(m); this.u16(k.length); for (var i = 0; i < k.length; i++) { this.u16(parseInt(k[i], 10)); this.u32(m[k[i]]); } return this; }; this.pack = function() { return b; }; return this; }
