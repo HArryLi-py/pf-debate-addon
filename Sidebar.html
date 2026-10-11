@@ -306,12 +306,14 @@
       window._fbWsSeen = false;
       return Promise.all([
         import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
-        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js')
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js'),
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js')
       ]).then(function(mods){
         fbMods = mods;
         try { if (fbApp) mods[0].deleteApp(fbApp); } catch (e) {}
         fbApp = mods[0].initializeApp({ databaseURL: url });
         fbDb = mods[1].getDatabase(fbApp);
+        try { mods[2].signInAnonymously(mods[2].getAuth(fbApp)); } catch(e) {}
         return fbDb;
       });
     }
@@ -367,7 +369,7 @@
 
     /* ---- Settings: load + save ---- */
     google.script.run.withSuccessHandler(function(s){
-      if(s){ $('setTitleSize').value=s.titleSize||27; $('setBlockSize').value=s.blockSize||24; $('setLang').value=s.language||'zh'; }
+      if(s){ $('setTitleSize').value=s.titleSize||27; $('setBlockSize').value=s.blockSize||24; $('setLang').value=s.language||'en'; }
     }).getSettings();
     $('saveSettingsBtn').addEventListener('click', function(){
       var s={titleSize:parseInt($('setTitleSize').value)||27, blockSize:parseInt($('setBlockSize').value)||24, language:$('setLang').value, cardDestination:'tab'};
