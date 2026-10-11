@@ -20,8 +20,8 @@ function t(i){if(i>=U.length){window._af=true;return}var s=document.createElemen
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
 /* Claim */
-.claim{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:20px}
-.claim-card{background:#fff;border-radius:24px;padding:36px 32px 28px;box-shadow:0 8px 32px rgba(0,0,0,.1);max-width:380px;width:100%;position:relative;overflow:hidden}
+.claim{position:fixed;inset:0;background:url('background5.jpeg') center/cover no-repeat;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:20px}
+.claim-card{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-radius:24px;padding:36px 32px 28px;box-shadow:0 8px 32px rgba(0,0,0,.15);max-width:380px;width:100%;position:relative;overflow:hidden}
 .claim-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--pro),var(--accent),var(--con))}
 .claim-icon{font-size:48px;text-align:center;margin-bottom:8px}
 .claim h2{font-size:22px;margin-bottom:24px;color:var(--fg);font-weight:600;text-align:center}
