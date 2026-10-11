@@ -11,70 +11,93 @@ function t(i){if(i>=U.length){window._af=true;return}var s=document.createElemen
 </script>
 <script src="firebase-config.js"></script>
 <style>
+:root{
+  --accent:#1a73e8;--accent-2:#1557b0;--accent-soft:rgba(26,115,232,.12);
+  --pro:#4285f4;--con:#ea4335;--judge:#fbbc04;--ok:#34a853;
+  --bg:#f8f9fa;--fg:#202124;--muted:#5f6368;--line:#dadce0;--line-2:#e8eaed;
+  --r:10px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:14px;color:#1a1a2e;background:#f5f6fa;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
 /* Claim */
-.claim{position:fixed;inset:0;background:#f5f6fa;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:20px}
-.claim h2{font-size:22px;margin-bottom:16px;color:#1a1a2e}
-.claim input{border:1px solid #d0d4e0;border-radius:8px;padding:8px 12px;font-size:14px;width:260px;margin-bottom:8px}
-.claim-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:320px;margin-top:8px}
-.cb{background:#fff;border:2px solid #d0d4e0;border-radius:12px;padding:14px;text-align:center;cursor:pointer;font-size:14px;font-weight:600;color:#1a1a2e;transition:.2s}
-.cb.pro{border-color:#2563eb}.cb.con{border-color:#dc2626}.cb.judge{border-color:#f59e0b}.cb.aud{border-color:#888;grid-column:span 2}
-.cb:hover{background:#f0f4ff}.cb:disabled{opacity:.3}
-.cs{color:#666;font-size:12px;margin-top:10px;text-align:center;max-width:400px}.cs.err{color:#dc2626}
-.rb{background:none;border:0;color:#888;font-size:12px;cursor:pointer;margin-top:8px;text-decoration:underline}
-.fb-fb{margin-top:10px;text-align:center;display:none}.fb-fb input{width:280px}.fb-fb button{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:6px 14px;cursor:pointer}
+.claim{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:20px}
+.claim h2{font-size:24px;margin-bottom:20px;color:var(--fg);font-weight:600}
+.claim input{border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;font-size:14px;width:280px;margin-bottom:10px;transition:border-color 150ms,box-shadow 150ms}
+.claim input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.claim-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:340px;margin-top:8px}
+.cb{background:#fff;border:2px solid var(--line);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;font-size:14px;font-weight:600;color:var(--fg);transition:all .18s ease}
+.cb.pro{border-color:var(--pro);color:var(--pro)}.cb.con{border-color:var(--con);color:var(--con)}.cb.judge{border-color:var(--judge);color:#b08000}.cb.aud{border-color:var(--muted);color:var(--muted);grid-column:span 2}
+.cb:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.cb.pro:hover{background:#e8f0fe}.cb.con:hover{background:#fce8e6}.cb.judge:hover{background:#fef7e0}.cb.aud:hover{background:#f1f3f4}
+.cb:active{transform:translateY(0) scale(.98)}
+.cb:disabled{opacity:.3;cursor:default;transform:none;box-shadow:none}
+.cs{color:var(--muted);font-size:12px;margin-top:12px;text-align:center;max-width:400px}.cs.err{color:var(--con)}
+.rb{background:none;border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:10px;padding:6px 14px;transition:.15s}
+.rb:hover{background:#f1f3f4;border-color:var(--accent);color:var(--accent)}
+.fb-fb{margin-top:12px;text-align:center;display:none}.fb-fb input{width:280px}.fb-fb button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 16px;cursor:pointer;font-weight:600;transition:.15s}
+.fb-fb button:hover{background:var(--accent-2);box-shadow:0 2px 8px rgba(26,115,232,.4)}
 /* Room */
 .room{display:none;flex:1;flex-direction:column;overflow:hidden}
-.topic-bar{background:#fff;padding:8px 16px;text-align:center;border-bottom:1px solid #e0e0e8}
-.topic-bar .topic{font-size:24px;font-weight:700;color:#1a1a2e}
-.topic-bar .vs{font-size:11px;color:#888;margin-top:2px}
-.judge-row{display:flex;justify-content:center;padding:8px;background:#fffceb;border-bottom:1px solid #f0e0a0}
+.topic-bar{background:#fff;padding:10px 16px;text-align:center;border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.topic-bar .topic{font-size:24px;font-weight:700;color:var(--fg)}
+.topic-bar .vs{font-size:11px;color:var(--muted);margin-top:2px}
+.judge-row{display:flex;justify-content:center;padding:8px;background:#fef7e0;border-bottom:1px solid #f0e0a0}
 .main-row{flex:1;display:flex;overflow:hidden}
 .team{flex:1;padding:12px;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center}
-.team.pro{background:#f0f4ff}.team.con{background:#fef0f0}
+.team.pro{background:#e8f0fe}.team.con{background:#fce8e6}
 .center-panel{flex:0 0 300px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:8px}
 /* Avatar */
-.avatar{width:96px;height:96px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:3px solid transparent;transition:.3s}
+.avatar{width:96px;height:96px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;position:relative;border:2px solid transparent;transition:.3s}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar video{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.avatar.speaking{border-color:#22c55e;box-shadow:0 0 16px rgba(34,197,94,.7);animation:avpulse 1.2s ease-in-out infinite}@keyframes avpulse{0%,100%{box-shadow:0 0 8px rgba(34,197,94,.4)}50%{box-shadow:0 0 20px rgba(34,197,94,.85)}}
+.avatar.speaking{border-color:var(--ok);box-shadow:0 0 16px rgba(52,168,83,.7);animation:avpulse 1.2s ease-in-out infinite}@keyframes avpulse{0%,100%{box-shadow:0 0 8px rgba(52,168,83,.4)}50%{box-shadow:0 0 20px rgba(52,168,83,.85)}}
 .avatar.muted{opacity:.4}
-.avatar.judge{width:72px;height:72px;font-size:24px;background:#f59e0b}
+.avatar.judge{width:72px;height:72px;font-size:24px;background:var(--judge);color:#5f4500}
 .debater{text-align:center}
-.debater .name{font-size:13px;font-weight:600;color:#1a1a2e;margin-top:4px}
-.debater .role{font-size:10px;color:#888}
+.debater .name{font-size:13px;font-weight:600;color:var(--fg);margin-top:4px}
+.debater .role{font-size:10px;color:var(--muted)}
 .debater .status{font-size:10px;margin-top:2px}
-.debater .status.on{color:#22c55e}.debater .status.off{color:#999}
-.debater .perm{font-size:10px;margin-top:1px}.debater .perm.y{color:#22c55e}.debater .perm.n{color:#999}
-.perm-btn{background:#e0e0e0;border:0;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:#333}
-.perm-btn.on{background:#22c55e;color:#fff}.perm-btn.off{background:#ccc;color:#888}
-.audio-bar{width:84px;height:8px;background:#e8ecf2;border-radius:4px;margin-top:6px;overflow:hidden;border:1px solid #cdd3e0}.mic-pulse{width:100px;height:12px;background:#e8ecf2;border-radius:6px;overflow:hidden;border:1px solid #cdd3e0;margin:0 8px;flex-shrink:0}.mic-pulse-fill{height:100%;width:0;background:#22c55e;transition:width .08s}
-.audio-fill{height:100%;width:0;background:#22c55e;transition:width .1s}
+.debater .status.on{color:var(--ok)}.debater .status.off{color:#999}
+.debater .perm{font-size:10px;margin-top:1px}.debater .perm.y{color:var(--ok)}.debater .perm.n{color:#999}
+.perm-btn{background:#f1f3f4;border:0;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--fg);transition:.15s}
+.perm-btn.on{background:var(--ok);color:#fff}.perm-btn.off{background:#f1f3f4;color:var(--muted)}
+.perm-btn:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.audio-bar{width:84px;height:8px;background:var(--line-2);border-radius:6px;margin-top:6px;overflow:hidden;border:1px solid var(--line)}
+.mic-pulse{width:100px;height:10px;background:var(--line-2);border-radius:6px;overflow:hidden;border:1px solid var(--line);margin:0 8px;flex-shrink:0}
+.mic-pulse-fill{height:100%;width:0;background:linear-gradient(90deg,var(--ok),var(--accent));transition:width .08s}
+.audio-fill{height:100%;width:0;background:var(--ok);transition:width .1s}
 /* Timer */
-.timer-num{font-size:56px;font-weight:800;font-variant-numeric:tabular-nums;color:#1a1a2e;line-height:1}
-.timer-num.warn{color:#f59e0b}.timer-num.done{color:#dc2626}
-.progress-track{width:240px;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;margin-top:4px}
-.progress-fill{height:100%;background:#22c55e;transition:width 1s linear}
-.progress-fill.warn{background:#f59e0b}.progress-fill.done{background:#dc2626}
+.timer-num{font-size:56px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--fg);line-height:1}
+.timer-num.warn{color:#e37400}.timer-num.done{color:var(--con)}
+.progress-track{width:240px;height:8px;background:var(--line-2);border-radius:6px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;background:var(--ok);transition:width 1s linear}
+.progress-fill.warn{background:#e37400}.progress-fill.done{background:var(--con)}
+/* Judge controls — Google Material Filled */
 .judge-ctrl{display:none;gap:6px;margin-top:8px}
-.judge-ctrl button{background:#1a1a2e;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}
-.judge-ctrl button:hover{background:#2a2a4e}
-.now-speaking{font-size:12px;color:#22c55e;font-weight:600;text-align:center;margin-top:4px}
-.next-up{font-size:11px;color:#888;text-align:center}
+.judge-ctrl button{background:var(--accent);color:#fff;border:0;border-radius:var(--r);padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s ease}
+.judge-ctrl button:hover{background:var(--accent-2);box-shadow:0 4px 12px rgba(26,115,232,.35);transform:translateY(-1px)}
+.judge-ctrl button:active{transform:translateY(0) scale(.98)}
+.now-speaking{font-size:12px;color:var(--ok);font-weight:600;text-align:center;margin-top:4px}
+.next-up{font-size:11px;color:var(--muted);text-align:center}
 /* Chat */
-.chat-bar{height:120px;display:flex;flex-direction:column;background:#fff;border-top:1px solid #e0e0e8}
-.chat-head{padding:4px 12px;font-size:11px;color:#888;border-bottom:1px solid #f0f0f4}
+.chat-bar{height:120px;display:flex;flex-direction:column;background:#fff;border-top:1px solid var(--line)}
+.chat-head{padding:4px 12px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--line-2)}
 .chat-list{flex:1;overflow-y:auto;padding:4px 12px}
-.chat-msg{font-size:12px;margin:2px 0}.chat-msg b{color:#2563eb;margin-right:3px}.chat-msg.me b{color:#22c55e}
-.chat-msg.sys{color:#888;font-size:11px;font-style:italic}
+.chat-msg{font-size:12px;margin:2px 0}.chat-msg b{color:var(--pro);margin-right:3px}.chat-msg.me b{color:var(--ok)}
+.chat-msg.sys{color:var(--muted);font-size:11px;font-style:italic}
 .chat-input{display:flex;gap:4px;padding:4px}
-.chat-input input{flex:1;border:1px solid #d0d4e0;border-radius:6px;padding:4px 8px;font-size:12px}
-.chat-input button{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
-/* Footer */
-.footer{background:#1a1a2e;padding:6px 14px;display:flex;align-items:center;gap:8px}
-.footer button{background:#2a2a4e;color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:16px;cursor:pointer}
-.footer .st{flex:1;font-size:11px;color:#888}.footer .st.ok{color:#22c55e}.footer .st.err{color:#ef4444}
+.chat-input input{flex:1;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px}
+.chat-input input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.chat-input button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.chat-input button:hover{background:var(--accent-2)}
+/* Footer — Google Material Filled buttons */
+.footer{background:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--line)}
+.footer button{background:var(--accent);color:#fff;border:0;border-radius:var(--r);padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s ease}
+.footer button:hover{background:var(--accent-2);box-shadow:0 4px 12px rgba(26,115,232,.35);transform:translateY(-1px)}
+.footer button:active{transform:translateY(0) scale(.98)}
+#leaveBtn{background:#fff;color:var(--con);border:1px solid var(--con)}
+#leaveBtn:hover{background:#fce8e6;border-color:var(--con);box-shadow:0 4px 12px rgba(234,67,53,.25)}
+.footer .st{flex:1;font-size:11px;color:var(--muted)}.footer .st.ok{color:var(--ok)}.footer .st.err{color:var(--con)}
 </style>
 </head>
 <body>
@@ -95,7 +118,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 <div class="room" id="room">
   <div class="topic-bar">
     <div class="topic" id="topicText">等待裁判设置辩题…</div>
-    <div class="vs">Pro 正方 ◀ vs ▶ Con 反方 · 房间 <span id="roomCode" style="color:#2563eb;font-weight:600"></span></div>
+    <div class="vs">Pro 正方 ◀ vs ▶ Con 反方 · 房间 <span id="roomCode" style="color:var(--pro);font-weight:600"></span></div>
   </div>
   <div class="judge-row" id="judgeRow" style="display:none">
     <div class="debater"><div class="avatar judge" id="av-Judge">J</div><div class="audio-bar"><div class="audio-fill" id="bar-Judge"></div></div><div class="name" id="nm-Judge">裁判</div><div class="status" id="st-Judge">—</div><div class="perm" id="perm-Judge">操控 —</div></div>
@@ -104,7 +127,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
     <div class="team pro">
       <div class="debater"><div class="avatar" id="av-Pro-1">P1</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-1"></div></div><div class="name" id="nm-Pro-1">空</div><div class="role">Pro-1 一辩</div><div class="status" id="st-Pro-1">—</div></div>
       <div class="debater"><div class="avatar" id="av-Pro-2">P2</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-2"></div></div><div class="name" id="nm-Pro-2">空</div><div class="role">Pro-2 二辩</div><div class="status" id="st-Pro-2">—</div></div>
-      <div style="font-size:12px;color:#2563eb;font-weight:600;text-align:center;padding:4px" id="proPrep">Prep: 3:00</div>
+      <div style="font-size:12px;color:var(--pro);font-weight:600;text-align:center;padding:4px" id="proPrep">Prep: 3:00</div>
     </div>
     <div class="center-panel">
       <div class="timer-num" id="timerNum">--:--</div>
@@ -114,9 +137,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
       <div id="phaseSeq" style="font-size:10px;color:#888;max-height:90px;overflow:auto;margin-top:4px;text-align:left;padding:0 6px;line-height:1.3;border-top:1px solid #eee"></div>
       <div class="judge-ctrl" id="judgeCtrl">
         <button id="phPrev">←</button><button id="phNext">→</button>
-        <button id="proPrepBtn" style="background:#2563eb">正方 Prep</button>
-        <button id="conPrepBtn" style="background:#dc2626">反方 Prep</button>
-        <button id="stopPrepBtn" style="background:#666">⏹ 停止 Prep</button>
+        <button id="proPrepBtn" style="background:var(--pro)">正方 Prep</button>
+        <button id="conPrepBtn" style="background:var(--con)">反方 Prep</button>
+        <button id="stopPrepBtn" style="background:#5f6368">⏹ 停止 Prep</button>
         <button id="autoAdvBtn">🔗 连续</button>
         <button id="tStart">▶</button><button id="tPause">⏸</button><button id="tReset">↺</button>
       </div>
@@ -129,7 +152,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
     <div class="team con">
       <div class="debater"><div class="avatar" id="av-Con-1">C1</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-1"></div></div><div class="name" id="nm-Con-1">空</div><div class="role">Con-1 一辩</div><div class="status" id="st-Con-1">—</div></div>
       <div class="debater"><div class="avatar" id="av-Con-2">C2</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-2"></div></div><div class="name" id="nm-Con-2">空</div><div class="role">Con-2 二辩</div><div class="status" id="st-Con-2">—</div></div>
-      <div style="font-size:12px;color:#dc2626;font-weight:600;text-align:center;padding:4px" id="conPrep">Prep: 3:00</div>
+      <div style="font-size:12px;color:var(--con);font-weight:600;text-align:center;padding:4px" id="conPrep">Prep: 3:00</div>
     </div>
   </div>
   <div class="chat-bar">
@@ -191,7 +214,7 @@ function renderClaim(){
   var g=$('claimGrid');g.innerHTML='';
   if(claimStep===0){
     $('claimTitle').textContent='个人资料';
-    g.innerHTML='<div style="grid-column:span 2;text-align:center;padding:8px"><button onclick="claimStep=1;renderClaim()" style="background:#2563eb;color:#fff;border:0;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">下一步：选阵营 →</button></div>';
+    g.innerHTML='<div style="grid-column:span 2;text-align:center;padding:8px"><button onclick="claimStep=1;renderClaim()" style="background:var(--pro);color:#fff;border:0;border-radius:var(--r);padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer">下一步：选阵营 →</button></div>';
   }else if(claimStep===1){
     $('claimTitle').textContent='选择阵营';
     [['正方 Pro','pro'],['反方 Con','con'],['裁判 Judge','judge'],['观众 Audience','aud']].forEach(function(it){
@@ -270,7 +293,7 @@ async function micClick(mode){
   else{if(!analyser){await setupLocalVolume()}await mic.setMuted(false);micMode=mode;fSet(fr('rooms/'+channel+'/micMode/'+myRole),mode)}
   updateMicBtns();
 }
-function updateMicBtns(){var a=$('micAllBtn'),t=$('micTeamBtn');if(!a||!t)return;a.textContent=micMode==='all'?'🔇 全员静':'🎤 全员';t.textContent=micMode==='team'?'🔇 队内静':'🎤 队内';a.style.background=micMode==='all'?'#22c55e':'';t.style.background=micMode==='team'?'#dc2626':''}
+function updateMicBtns(){var a=$('micAllBtn'),t=$('micTeamBtn');if(!a||!t)return;a.textContent=micMode==='all'?'🔇 全员静':'🎤 全员';t.textContent=micMode==='team'?'🔇 队内静':'🎤 队内';a.style.background=micMode==='all'?'var(--ok)':'var(--accent)';t.style.background=micMode==='team'?'var(--con)':'var(--accent)'}
 async function enforcePhase(phase){
   var rule=PHASES.find(function(p){return p.n===phase})||PHASES[0];
   // mic is USER-CONTROLLED — not auto-muted by phase. Privacy = selective subscribe.
@@ -283,7 +306,7 @@ async function enforcePhase(phase){
 }
 function renderPhase(){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
   $('nowSpeaking').textContent='当前: '+rule.name;$('nextUp').textContent='开麦: '+rule.pub.join(', ');renderPhaseSeq()}
-function renderPhaseSeq(){var box=$('phaseSeq');if(!box)return;box.innerHTML='';PHASES.forEach(function(p){var d=document.createElement('div');d.textContent=p.n+'. '+p.name+' ('+fmt(p.sec)+')';if(p.n===curPhase){d.style.color='#2563eb';d.style.fontWeight='600'}else if(p.n<curPhase){d.style.color='#bbb'}box.appendChild(d)})}
+function renderPhaseSeq(){var box=$('phaseSeq');if(!box)return;box.innerHTML='';PHASES.forEach(function(p){var d=document.createElement('div');d.textContent=p.n+'. '+p.name+' ('+fmt(p.sec)+')';if(p.n===curPhase){d.style.color='var(--pro)';d.style.fontWeight='600'}else if(p.n<curPhase){d.style.color='var(--muted)'}box.appendChild(d)})}
 function renderSeats(){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
   ['Pro-1','Pro-2','Con-1','Con-2','Judge'].forEach(function(r){
     var occ=seats[r];var live=rule.pub.includes(r);
@@ -316,7 +339,7 @@ function renderTimer(){var box=$('timerNum');var fill=$('progFill');
     fill.className='progress-fill'+(rem<=30?' warn':'')+(rem<=0?' done':'');
     if(rem<=0&&autoAdvance&&!autoAdvanced){autoAdvanced=true;if(curPhase>=11){fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:PHASES.find(function(p){return p.n===11}).sec,remainingSec:0});return}var next=Math.min(11,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),next);var r=PHASES.find(function(p){return p.n===next});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec,remainingSec:r.sec})}}
   if(timerTick)clearInterval(timerTick);tick();if(timerRunning)timerTick=setInterval(tick,1000)}
-$('autoAdvBtn').onclick=function(){autoAdvance=!autoAdvance;$('autoAdvBtn').style.background=autoAdvance?'#22c55e':'#1a1a2e';$('autoAdvBtn').textContent=autoAdvance?'🔗 ✓':'🔗 连续'};
+$('autoAdvBtn').onclick=function(){autoAdvance=!autoAdvance;$('autoAdvBtn').style.background=autoAdvance?'var(--ok)':'var(--accent)';$('autoAdvBtn').textContent=autoAdvance?'🔗 ✓':'🔗 连续'};
 function renderChat(msgs){var l=$('chatList');l.innerHTML='';var keys=Object.keys(msgs).sort();
   keys.forEach(function(k){var m=msgs[k];if(!m)return;var d=document.createElement('div');
     if(m.sys){d.className='chat-msg sys';d.textContent=m.text}
@@ -344,8 +367,8 @@ async function setupLocalVolume(){
 function getLocalVolume(){if(!analyser)return 0;analyser.getByteFrequencyData(micFreqData);var s=0;for(var i=0;i<micFreqData.length;i++)s+=micFreqData[i];return s/micFreqData.length/255}
 function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInterval(function(){
   var l=getLocalVolume()||(mic?mic.getVolumeLevel():0);
-  var mp=$('micPulseFill');if(mp){var p=Math.min(100,l*300);mp.style.width=p+'%';mp.style.background=p>5?'#22c55e':'#cdd3e0'}
-  var b=$('bar-'+myRole);if(b){var pct=Math.min(100,l*300);b.style.width=pct+'%';b.style.background=pct>5?'#22c55e':'#e0e0e0'}
+  var mp=$('micPulseFill');if(mp){var p=Math.min(100,l*300);mp.style.width=p+'%';mp.style.background=p>5?'var(--ok)':'var(--line)'}
+  var b=$('bar-'+myRole);if(b){var pct=Math.min(100,l*300);b.style.width=pct+'%';b.style.background=pct>5?'var(--ok)':'var(--line-2)'}
   if(client)client.remoteUsers.forEach(function(u){if(u.audioTrack){var rl=u.audioTrack.getVolumeLevel();var r=roleOf(u.uid);var rb=$('bar-'+r);if(rb)rb.style.width=Math.min(100,rl*500)+'%'}})
 },200)}
 function rule_pub_has(role){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];return rule.pub.includes(role)}
