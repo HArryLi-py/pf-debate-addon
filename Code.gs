@@ -308,11 +308,13 @@ var AGORA_APP_ID = '6fb557c64dc04c578ea45bbc0f29cac0';
 var AGORA_APP_CERT = '8d95c2dad6214253b87e55592de978da';
 
 function _agoraHmac(keyBytes, msgBytes) {
-  var sha = new jsSHA("SHA-256", "UINT8ARRAY");
-  sha.setHMACKey(new Uint8Array(keyBytes), "UINT8ARRAY");
-  sha.update(new Uint8Array(msgBytes));
-  var hmacHex = sha.getHMAC("HEX");
-  return hmacHex.match(/.{2}/g).map(function(h) { return parseInt(h, 16); });
+  // Use Apps Script's built-in HMAC-SHA256 with ISO-8859-1 charset (preserves raw bytes)
+  var keyStr = Utilities.newBlob(keyBytes).getDataAsString('ISO-8859-1');
+  var msgStr = Utilities.newBlob(msgBytes).getDataAsString('ISO-8859-1');
+  var sig = Utilities.computeHmacSha256Signature(msgStr, keyStr, 'ISO-8859-1');
+  var result = [];
+  for (var i = 0; i < sig.length; i++) result.push(sig[i] & 255);
+  return result;
 }
 function _agoraBB() { var b = []; this.u16 = function(v) { b.push(v & 255, v >> 8 & 255); return this; }; this.u32 = function(v) { b.push(v & 255, v >> 8 & 255, v >> 16 & 255, v >>> 24 & 255); return this; }; this.bytes = function(a) { this.u16(a.length); for (var i = 0; i < a.length; i++) b.push(a[i] & 255); return this; }; this.str = function(s) { var u = unescape(encodeURIComponent(s)); var a = []; for (var i = 0; i < u.length; i++) a.push(u.charCodeAt(i)); return this.bytes(a); }; this.map32 = function(m) { var k = Object.keys(m); this.u16(k.length); for (var i = 0; i < k.length; i++) { this.u16(parseInt(k[i], 10)); this.u32(m[k[i]]); } return this; }; this.pack = function() { return b; }; return this; }
 function _agoraCat(arrs) { var t = 0; arrs.forEach(function(a) { t += a.length; }); var o = new Array(t); var f = 0; arrs.forEach(function(a) { for (var i = 0; i < a.length; i++) o[f++] = a[i]; }); return o; }
