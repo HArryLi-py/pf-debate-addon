@@ -257,7 +257,7 @@
         highlightColor: $('highlightColor').value
       };
       if (!form.title || !form.citation || !form.quote){
-        setStatus('标题、citation、quote 都要填。', 'err'); return;
+        setStatus(st('connFail')+'Title, citation, quote required', 'err'); return;
       }
       setStatus('Generating…');
       genBtn.disabled = true;
@@ -351,7 +351,7 @@
       ]).then(function(mods){
         fbMods = mods;
         try { if (fbApp) mods[0].deleteApp(fbApp); } catch (e) {}
-        fbApp = mods[0].initializeApp(typeof FIREBASE_CONFIG!=='undefined'?FIREBASE_CONFIG:{databaseURL:url,apiKey:typeof FIREBASE_API_KEY!=='undefined'?FIREBASE_API_KEY:'',authDomain:typeof FIREBASE_AUTH_DOMAIN!=='undefined'?FIREBASE_AUTH_DOMAIN:''});
+        fbApp = mods[0].initializeApp(typeof FIREBASE_CONFIG!=='undefined'?FIREBASE_CONFIG:{databaseURL:url,apiKey:"AIzaSyBcMPJ298tx5ng_U2w69_TMdeWVeXngkPo",authDomain:"pf-debate.firebaseapp.com"});
         fbDb = mods[1].getDatabase(fbApp);
         try { mods[2].signInAnonymously(mods[2].getAuth(fbApp)); } catch(e) {}
         return fbDb;
