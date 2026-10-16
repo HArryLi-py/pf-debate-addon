@@ -1,6 +1,18 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true
+    "rooms": {
+      "$channel": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "pfdebate": {
+      "rounds": { ".read": "auth != null", ".write": "auth != null" },
+      "test": { ".read": true, ".write": true }
+    },
+    "config": {
+      ".read": "auth != null",
+      ".write": false
+    }
   }
 }
