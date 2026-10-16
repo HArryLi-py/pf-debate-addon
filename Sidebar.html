@@ -104,35 +104,35 @@
   </style>
 </head>
 <body>
-  <h4>格式 · 先在 Doc 里选中文字</h4>
+  <h4 id="lbl-format">Format · Select text in Doc first</h4>
   <div class="macros">
-    <button id="titleBtn">标题 Title</button>
+    <button id="titleBtn">Title</button>
     <button id="blocksBtn">blocks</button>
-    <button id="normalBtn">写正文</button>
+    <button id="normalBtn">Body Text</button>
   </div>
-  <div class="hint">标题 = 居中加粗下划线（H1，进大纲）；blocks = 居中灰字下划线（H2，进大纲）；写正文 = 13pt 不加粗不下划线（恢复正常文字）。</div>
+  <div class="hint" id="hint-format">Title = centered bold underline (H1); blocks = centered gray underline (H2); Body Text = 13pt no bold no underline.</div>
 
   <hr>
 
-  <h4>生成 evidence card</h4>
-  <label>标题 Title</label>
-  <input id="title" placeholder="一句话论点">
-  <label>Citation</label>
-  <input id="citation" placeholder="作者, 资质, 来源, 日期">
-  <label>Quote 引用文字</label>
-  <textarea id="quote" placeholder="逐字原文"></textarea>
-  <label>Highlight（在 quote 里能找到的那段 → 加粗+下划线+着色底）</label>
-  <input id="highlight" placeholder="把要强调的几个字/词粘这里">
-  <label>Highlight 颜色</label>
+  <h4 id="lbl-card">Generate evidence card</h4>
+  <label id="lbl-cardtitle">Title</label>
+  <input id="title" placeholder="One-sentence argument">
+  <label id="lbl-citation">Citation</label>
+  <input id="citation" placeholder="Author, credentials, source, date">
+  <label id="lbl-quote">Quote</label>
+  <textarea id="quote" placeholder="Verbatim original text"></textarea>
+  <label id="lbl-highlight">Highlight (found in quote → bold+underline+color)</label>
+  <input id="highlight" placeholder="Words to emphasize">
+  <label id="lbl-highlight-color">Highlight color</label>
   <input type="color" id="highlightColor" value="#FFF3A0" style="height:36px;padding:3px">
-  <div class="row"><button class="primary" id="genBtn">生成 card + 插链接</button></div>
-  <div class="hint">先在 Doc 左下角标签栏点 ＋ 建一个标签页名叫 <b>evidence cards</b>（一次性）。生成后卡片进那个标签页，当前 Doc 光标处插一个 card N 超链接跳过去。高亮部分字号比其他引用字大。</div>
+  <div class="row"><button class="primary" id="genBtn">Generate card + insert link</button></div>
+  <div class="hint" id="hint-card">Create a tab named <b>evidence cards</b> first (one-time). Cards go there; a card N link is inserted at cursor.</div>
 
   <div id="status">Ready.</div>
 
   <hr>
 
-  <h4>Prep 计时</h4>
+  <h4 id="lbl-prep">Prep Timer</h4>
   <div class="timer-display" id="prepDisp">03:00</div>
   <div class="row">
     <button class="primary" id="prepStart">Start</button>
@@ -141,7 +141,7 @@
   </div>
   <div class="presets" id="prepPresets"></div>
 
-  <h4>辩论计时</h4>
+  <h4 id="lbl-debate">Debate Timer</h4>
   <div class="timer-display" id="debDisp">04:00</div>
   <div class="row">
     <button class="primary" id="debStart">Start</button>
@@ -149,38 +149,38 @@
     <button id="debReset">Reset</button>
   </div>
   <div class="presets" id="debPresets"></div>
-  <div class="hint">本地计时（赛前准备/练习用，不同步）。真实比赛的同步计时器在语音房里。</div>
+  <div class="hint" id="hint-timer">Local timer (practice/prep use, not synced). Real synced timer is in the voice room.</div>
 
   <hr>
 
-  <h4>聊天</h4>
-  <div class="row"><button class="primary" id="chatDialogBtn">💬 打开聊天窗口</button></div>
-  <div class="hint">弹出独立窗口：微信样式聊天，跟共同编辑 Doc 的人交流。赛程/计时在语音房里。</div>
+  <h4 id="lbl-chat">Chat</h4>
+  <div class="row"><button class="primary" id="chatDialogBtn">💬 Open chat window</button></div>
+  <div class="hint" id="hint-chat">Pop-up window: chat with people editing this Doc. Schedule/timer in voice room.</div>
 
   <hr>
 
-  <h4>Phase 2 · Firebase 连接测试</h4>
-  <label>Firebase Realtime Database URL</label>
-  <input id="fbUrl" placeholder="https://<你的项目>.firebaseio.com">
-  <div class="row"><button class="primary" id="fbTestBtn">测试连接</button></div>
-  <div class="fb-result" id="fbResult">填入 databaseURL 后点测试。</div>
+  <h4 id="lbl-firebase">Firebase connection test</h4>
+  <label id="lbl-fburl">Firebase Realtime Database URL</label>
+  <input id="fbUrl" placeholder="https://your-project.firebaseio.com">
+  <div class="row"><button class="primary" id="fbTestBtn">Test connection</button></div>
+  <div class="fb-result" id="fbResult">Enter databaseURL then test.</div>
 
   <hr>
 
-  <h4>Phase 3 · 语音通话</h4>
-  <div class="row"><input id="roomCode" placeholder="房间号/邀请码（留空用文档默认）" style="flex:1;padding:6px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px"></div>
-  <div class="row"><a id="audioLink" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;color:#fff;background:#2563eb;border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px">📞 加入语音房间</a></div>
+  <h4 id="lbl-voice">Voice room</h4>
+  <div class="row"><input id="roomCode" placeholder="Room code (blank = doc default)" style="flex:1;padding:6px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px"></div>
+  <div class="row"><a id="audioLink" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;color:#fff;background:#2563eb;border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px">📞 Join voice room</a></div>
 
   <hr>
 
-  <h4>设置</h4>
-  <label>标题字号 (pt)</label>
+  <h4 id="lbl-settings">Settings</h4>
+  <label id="lbl-titlesize">Title font size (pt)</label>
   <input id="setTitleSize" type="number" value="27" style="width:80px">
-  <label>blocks 字号 (pt)</label>
+  <label id="lbl-blocksize">blocks font size (pt)</label>
   <input id="setBlockSize" type="number" value="24" style="width:80px">
-  <label>语言</label>
-  <select id="setLang" style="width:100%"><option value="zh">中文</option><option value="en">English</option></select>
-  <div class="row"><button id="saveSettingsBtn">保存设置</button></div>
+  <label id="lbl-lang">Language</label>
+  <select id="setLang" style="width:100%"><option value="en">English</option><option value="zh">中文</option></select>
+  <div class="row"><button id="saveSettingsBtn">Save settings</button></div>
   <div class="hint" id="settingsHint"></div>
 
   <script>
@@ -188,10 +188,50 @@
     var status = $('status');
     function setStatus(msg, cls){ status.textContent = msg; status.className = cls || ''; }
 
-    /* self-test on load: proves sidebar↔server plumbing + shows selection state */
-    setStatus('连接中…');
+    /* I18N — sidebar language system */
+    var SID_LANG='en';
+    var SID_I18N={
+      en:{format:'Format · Select text in Doc first',titleBtn:'Title',blocksBtn:'blocks',normalBtn:'Body Text',hintFormat:'Title = centered bold underline (H1); blocks = centered gray underline (H2); Body Text = 13pt no bold no underline.',card:'Generate evidence card',cardTitle:'Title',citation:'Citation',quote:'Quote',highlight:'Highlight (found in quote → bold+underline+color)',highlightColor:'Highlight color',genBtn:'Generate card + insert link',hintCard:'Create a tab named evidence cards first (one-time).',prep:'Prep Timer',debate:'Debate Timer',hintTimer:'Local timer (practice/prep use, not synced). Real synced timer is in the voice room.',chat:'Chat',chatBtn:'💬 Open chat window',hintChat:'Pop-up window: chat with people editing this Doc.',firebase:'Firebase connection test',fbUrl:'Firebase Realtime Database URL',fbTest:'Test connection',fbResult:'Enter databaseURL then test.',voice:'Voice room',roomCode:'Room code (blank = doc default)',joinVoice:'📞 Join voice room',settings:'Settings',titleSize:'Title font size (pt)',blockSize:'blocks font size (pt)',lang:'Language',save:'Save settings',connecting:'Connecting…',connFail:'Connection failed: '},
+      zh:{format:'格式 · 先在 Doc 里选中文字',titleBtn:'标题 Title',blocksBtn:'blocks',normalBtn:'写正文',hintFormat:'标题 = 居中加粗下划线（H1，进大纲）；blocks = 居中灰字下划线（H2，进大纲）；写正文 = 13pt 不加粗不下划线。',card:'生成 evidence card',cardTitle:'标题 Title',citation:'Citation',quote:'Quote 引用文字',highlight:'Highlight（在 quote 里能找到的那段 → 加粗+下划线+着色底）',highlightColor:'Highlight 颜色',genBtn:'生成 card + 插链接',hintCard:'先在 Doc 左下角标签栏点 ＋ 建一个标签页名叫 evidence cards（一次性）。',prep:'Prep 计时',debate:'辩论计时',hintTimer:'本地计时（赛前准备/练习用，不同步）。真实比赛的同步计时器在语音房里。',chat:'聊天',chatBtn:'💬 打开聊天窗口',hintChat:'弹出独立窗口：微信样式聊天，跟共同编辑 Doc 的人交流。赛程/计时在语音房里。',firebase:'Phase 2 · Firebase 连接测试',fbUrl:'Firebase Realtime Database URL',fbTest:'测试连接',fbResult:'填入 databaseURL 后点测试。',voice:'Phase 3 · 语音通话',roomCode:'房间号/邀请码（留空用文档默认）',joinVoice:'📞 加入语音房间',settings:'设置',titleSize:'标题字号 (pt)',blockSize:'blocks 字号 (pt)',lang:'语言',save:'保存设置',connecting:'连接中…',connFail:'连接失败: '}
+    };
+    function st(k){return(SID_I18N[SID_LANG]&&SID_I18N[SID_LANG][k])||SID_I18N.en[k]||k}
+    function applySidebarLang(){
+      $('lbl-format').textContent=st('format');
+      $('titleBtn').textContent=st('titleBtn');
+      $('blocksBtn').textContent=st('blocksBtn');
+      $('normalBtn').textContent=st('normalBtn');
+      $('hint-format').textContent=st('hintFormat');
+      $('lbl-card').textContent=st('card');
+      $('lbl-cardtitle').textContent=st('cardTitle');
+      $('lbl-citation').textContent=st('citation');
+      $('lbl-quote').textContent=st('quote');
+      $('lbl-highlight').textContent=st('highlight');
+      $('lbl-highlight-color').textContent=st('highlightColor');
+      $('genBtn').textContent=st('genBtn');
+      $('hint-card').textContent=st('hintCard');
+      $('lbl-prep').textContent=st('prep');
+      $('lbl-debate').textContent=st('debate');
+      $('hint-timer').textContent=st('hintTimer');
+      $('lbl-chat').textContent=st('chat');
+      $('chatDialogBtn').textContent=st('chatBtn');
+      $('hint-chat').textContent=st('hintChat');
+      $('lbl-firebase').textContent=st('firebase');
+      $('lbl-fburl').textContent=st('fbUrl');
+      $('fbTestBtn').textContent=st('fbTest');
+      $('fbResult').textContent=st('fbResult');
+      $('lbl-voice').textContent=st('voice');
+      $('lbl-settings').textContent=st('settings');
+      $('lbl-titlesize').textContent=st('titleSize');
+      $('lbl-blocksize').textContent=st('blockSize');
+      $('lbl-lang').textContent=st('lang');
+      $('saveSettingsBtn').textContent=st('save');
+    }
+    function setSidebarLang(lang){SID_LANG=lang||'en';try{applySidebarLang()}catch(e){}}
+
+    /* self-test on load */
+    setStatus(st('connecting'));
     google.script.run.withSuccessHandler(function(res){ setStatus(res, 'ok'); })
-      .withFailureHandler(function(err){ setStatus('连接失败: ' + err.message, 'err'); })
+      .withFailureHandler(function(err){ setStatus(st('connFail') + err.message, 'err'); })
       .ping();
 
     function call(fnName, args, onOk){
@@ -369,11 +409,11 @@
 
     /* ---- Settings: load + save ---- */
     google.script.run.withSuccessHandler(function(s){
-      if(s){ $('setTitleSize').value=s.titleSize||27; $('setBlockSize').value=s.blockSize||24; $('setLang').value=s.language||'en'; }
+      if(s){ $('setTitleSize').value=s.titleSize||27; $('setBlockSize').value=s.blockSize||24; $('setLang').value=s.language||'en'; setSidebarLang(s.language||'en'); }
     }).getSettings();
     $('saveSettingsBtn').addEventListener('click', function(){
       var s={titleSize:parseInt($('setTitleSize').value)||27, blockSize:parseInt($('setBlockSize').value)||24, language:$('setLang').value, cardDestination:'tab'};
-      google.script.run.withSuccessHandler(function(){ $('settingsHint').textContent='设置已保存 ✓'; }).setSettings(s);
+      google.script.run.withSuccessHandler(function(){ $('settingsHint').textContent='✓'; setSidebarLang($('setLang').value); }).setSettings(s);
     });
   </script>
 </body>
