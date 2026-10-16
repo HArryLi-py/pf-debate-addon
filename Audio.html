@@ -257,20 +257,20 @@ var claimStep=0;
 function renderClaim(){
   var g=$('claimGrid');g.innerHTML='';
   if(claimStep===0){
-    $('claimTitle').textContent='个人资料';
-    g.innerHTML='<div style="grid-column:span 2;text-align:center;padding:8px"><button onclick="claimStep=1;renderClaim()" style="background:var(--pro);color:#fff;border:0;border-radius:var(--r);padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer">下一步：选阵营 →</button></div>';
+    $('claimTitle').textContent=t('profile');
+    g.innerHTML='<div style="grid-column:span 2;text-align:center;padding:8px"><button onclick="claimStep=1;renderClaim()" style="background:var(--pro);color:#fff;border:0;border-radius:var(--r);padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer">'+t('nextSide')+'</button></div>';
   }else if(claimStep===1){
-    $('claimTitle').textContent='选择阵营';
-    [['正方 Pro','pro'],['反方 Con','con'],['裁判 Judge','judge'],['观众 Audience','aud']].forEach(function(it){
+    $('claimTitle').textContent=t('chooseSide');
+    [[t('pro'),'pro'],[t('con'),'con'],[t('judge'),'judge'],[t('audience'),'aud']].forEach(function(it){
       var b=document.createElement('button');b.className='cb '+it[1];b.textContent=it[0];b.onclick=function(){if(it[1]==='judge'){claimSeat('Judge')}else if(it[1]==='aud'){claimSeat('Audience')}else{claimStep=it[1];renderClaim()}};g.appendChild(b)});
   }else if(claimStep==='pro'){
-    $('claimTitle').textContent='正方 — 选辩手';
-    ['Pro-1','Pro-2'].forEach(function(r){var b=document.createElement('button');b.className='cb pro';b.innerHTML=r+'<br><small>'+(r==='Pro-1'?'一辩':'二辩')+'</small>';b.disabled=!!seats[r];b.onclick=function(){claimSeat(r)};g.appendChild(b)});
-    var bk=document.createElement('button');bk.className='rb';bk.textContent='← 返回';bk.onclick=function(){claimStep=1;renderClaim()};g.appendChild(bk);
+    $('claimTitle').textContent=t('proSelect');
+    ['Pro-1','Pro-2'].forEach(function(r){var b=document.createElement('button');b.className='cb pro';b.innerHTML=r+'<br><small>'+(r==='Pro-1'?t('debater1'):t('debater2'))+'</small>';b.disabled=!!seats[r];b.onclick=function(){claimSeat(r)};g.appendChild(b)});
+    var bk=document.createElement('button');bk.className='rb';bk.textContent=t('back');bk.onclick=function(){claimStep=1;renderClaim()};g.appendChild(bk);
   }else if(claimStep==='con'){
-    $('claimTitle').textContent='反方 — 选辩手';
-    ['Con-1','Con-2'].forEach(function(r){var b=document.createElement('button');b.className='cb con';b.innerHTML=r+'<br><small>'+(r==='Con-1'?'一辩':'二辩')+'</small>';b.disabled=!!seats[r];b.onclick=function(){claimSeat(r)};g.appendChild(b)});
-    var bk=document.createElement('button');bk.className='rb';bk.textContent='← 返回';bk.onclick=function(){claimStep=1;renderClaim()};g.appendChild(bk);
+    $('claimTitle').textContent=t('conSelect');
+    ['Con-1','Con-2'].forEach(function(r){var b=document.createElement('button');b.className='cb con';b.innerHTML=r+'<br><small>'+(r==='Con-1'?t('debater1'):t('debater2'))+'</small>';b.disabled=!!seats[r];b.onclick=function(){claimSeat(r)};g.appendChild(b)});
+    var bk=document.createElement('button');bk.className='rb';bk.textContent=t('back');bk.onclick=function(){claimStep=1;renderClaim()};g.appendChild(bk);
   }
 }
 async function claimSeat(role){
@@ -501,7 +501,7 @@ $('switchBtn').onclick=async function(){
    Firebase write loop via a persistent onValue listener). NSDA seats are fixed by role; use the
    "换座位" button above to release a seat and re-claim instead of swapping. */
 /* Reset seats */
-$('resetBtn').onclick=function(){if(!fd){$('claimStatus').textContent='Firebase 没连';return}fSet(fr('rooms/'+channel+'/seats'),null);fSet(fr('rooms/'+channel+'/roster'),null);fSet(fr('rooms/'+channel+'/timer'),null);fSet(fr('rooms/'+channel+'/proPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:PREP_SEC});fSet(fr('rooms/'+channel+'/conPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:PREP_SEC});seats={};proPrepRem=PREP_SEC;conPrepRem=PREP_SEC;$('claimStatus').textContent='席位+计时器+Prep 已重置 ✓';$('claimStatus').className='cs'};
+$('resetBtn').onclick=function(){if(!fd){$('claimStatus').textContent=t('fbNotConn');return}fSet(fr('rooms/'+channel+'/seats'),null);fSet(fr('rooms/'+channel+'/roster'),null);fSet(fr('rooms/'+channel+'/timer'),null);fSet(fr('rooms/'+channel+'/proPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:PREP_SEC});fSet(fr('rooms/'+channel+'/conPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:PREP_SEC});seats={};proPrepState={running:false,endsAt:0,durationSec:PREP_SEC,remaining:PREP_SEC};conPrepState={running:false,endsAt:0,durationSec:PREP_SEC,remaining:PREP_SEC};proPrepRem=PREP_SEC;conPrepRem=PREP_SEC;$('claimStatus').textContent=t('seatsReset');$('claimStatus').className='cs'};
 /* Init */
 renderClaim();
 async function init(){var cs=$('claimStatus');
