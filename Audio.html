@@ -54,7 +54,7 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar video{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar.speaking{border-color:var(--ok);box-shadow:0 0 16px rgba(52,168,83,.7);animation:avpulse 1.2s ease-in-out infinite}@keyframes avpulse{0%,100%{box-shadow:0 0 8px rgba(52,168,83,.4)}50%{box-shadow:0 0 20px rgba(52,168,83,.85)}}
-.avatar.muted{opacity:.4}
+.avatar.muted{opacity:.4}.avatar.muted:has(video){opacity:1}
 .avatar.judge{width:96px;height:96px;font-size:32px;background:var(--judge);color:#5f4500}
 .debater{text-align:center}
 .debater .name{font-size:18px;font-weight:600;color:var(--fg);margin-top:6px}
@@ -116,7 +116,7 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
     <button class="rb" id="resetBtn">重置席位</button>
     <div class="fb-fb" id="fbFallback">
       <input id="fbManual" placeholder="https://你的项目.firebaseio.com">
-      <button onclick="var u=document.getElementById('fbManual').value.trim();if(u){fbUrl=u;document.getElementById('fbFallback').style.display='none';init()}">连接 Firebase</button>
+      <button id="fbManualBtn" onclick="var u=document.getElementById('fbManual').value.trim();if(u){fbUrl=u;document.getElementById('fbFallback').style.display='none';init()}">连接 Firebase</button>
     </div>
   </div>
 </div>
@@ -132,8 +132,8 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
   <div class="main-row">
     <div class="team pro">
       <div style="font-size:22px;color:var(--pro);font-weight:700;text-align:center;padding:8px;background:rgba(66,133,244,.1);border-radius:8px;width:100%" id="proPrep">Prep: 3:00</div>
-      <div class="debater"><div class="avatar" id="av-Pro-1">P1</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-1"></div></div><div class="name" id="nm-Pro-1">空</div><div class="role">Pro-1 一辩</div><div class="status" id="st-Pro-1">—</div></div>
-      <div class="debater"><div class="avatar" id="av-Pro-2">P2</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-2"></div></div><div class="name" id="nm-Pro-2">空</div><div class="role">Pro-2 二辩</div><div class="status" id="st-Pro-2">—</div></div>
+      <div class="debater"><div class="avatar" id="av-Pro-1">P1</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-1"></div></div><div class="name" id="nm-Pro-1">空</div><div class="role" id="role-Pro-1">Pro-1 一辩</div><div class="status" id="st-Pro-1">—</div></div>
+      <div class="debater"><div class="avatar" id="av-Pro-2">P2</div><div class="audio-bar"><div class="audio-fill" id="bar-Pro-2"></div></div><div class="name" id="nm-Pro-2">空</div><div class="role" id="role-Pro-2">Pro-2 二辩</div><div class="status" id="st-Pro-2">—</div></div>
     </div>
     <div class="center-panel">
       <div class="timer-num" id="timerNum">--:--</div>
@@ -157,8 +157,8 @@ body{font-family:var(--font);font-size:14px;color:var(--fg);background:var(--bg)
     </div>
     <div class="team con">
       <div style="font-size:22px;color:var(--con);font-weight:700;text-align:center;padding:8px;background:rgba(234,67,53,.1);border-radius:8px;width:100%" id="conPrep">Prep: 3:00</div>
-      <div class="debater"><div class="avatar" id="av-Con-1">C1</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-1"></div></div><div class="name" id="nm-Con-1">空</div><div class="role">Con-1 一辩</div><div class="status" id="st-Con-1">—</div></div>
-      <div class="debater"><div class="avatar" id="av-Con-2">C2</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-2"></div></div><div class="name" id="nm-Con-2">空</div><div class="role">Con-2 二辩</div><div class="status" id="st-Con-2">—</div></div>
+      <div class="debater"><div class="avatar" id="av-Con-1">C1</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-1"></div></div><div class="name" id="nm-Con-1">空</div><div class="role" id="role-Con-1">Con-1 一辩</div><div class="status" id="st-Con-1">—</div></div>
+      <div class="debater"><div class="avatar" id="av-Con-2">C2</div><div class="audio-bar"><div class="audio-fill" id="bar-Con-2"></div></div><div class="name" id="nm-Con-2">空</div><div class="role" id="role-Con-2">Con-2 二辩</div><div class="status" id="st-Con-2">—</div></div>
     </div>
   </div>
   <div class="chat-bar">
@@ -184,8 +184,8 @@ var $=function(id){return document.getElementById(id)};
 var _urlParams=new URLSearchParams(location.search);
 var LANG=_urlParams.get('lang')||(typeof LANG!=='undefined'?LANG:'en');
 var I18N={
-  en:{profile:'Profile',yourName:'Your name',avatarUrl:'Avatar URL (optional)',loading:'Loading…',resetSeats:'Reset Seats',connectFb:'Connect Firebase',fbNeeded:'Firebase URL required — paste below',connecting:'Connecting…',fbConnected:'Firebase connected ✓ — Enter name and pick side',fbFailed:'Firebase failed: ',fbPrompt:'https://your-project.firebaseio.com',waitingTopic:'Waiting for judge to set topic…',vs:'Pro ◀ vs ▶ Con',room:'Room',waitingStart:'Waiting to start',current:'Current: ',speaking:'Speaking: ',chat:'Chat',typeMsg:'Type a message…',send:'Send',micAll:'🎤 All',micTeam:'🎤 Team',cam:'📹 Camera',switchSeat:'🔄 Switch',sim4:'👥 Sim 4',leave:'Leave',ready:'Ready',joined:'Joined ✓ — click mic to speak',joining:'Joining audio…',sdkNotLoaded:'Agora SDK not loaded — schedule/timer/chat work, no voice',joinFailed:'Join failed: ',noPerm:'No control permission (Judge hasn\'t granted)',audienceNoCam:'Audience can\'t use camera',permPanel:'Controls (managed by Judge)',topicInput:'Topic (anyone can set)',nextSide:'Next: Choose side →',chooseSide:'Choose Side',pro:'Pro',con:'Con',judge:'Judge',audience:'Audience',proSelect:'Pro — Select Debater',conSelect:'Con — Select Debater',back:'← Back',seatTaken:'Seat taken — click Reset Seats',seatOccupied:'Seat occupied',fbWriteFail:'Firebase write failed: ',proPrepStart:'Pro Prep started',conPrepStart:'Con Prep started',prepStopped:'Prep stopped',leftRoom:'Left room — you can close this page',micAllOn:'🔇 All Mute',micTeamOn:'🔇 Team Mute',proPrep:'Pro Prep',conPrep:'Con Prep',stopPrep:'⏹ Stop Prep',autoAdv:'🔗 Auto',autoAdvOn:'🔗 ✓',firstSpk:'First Speaker',secondSpk:'Second Speaker',debater1:'First Speaker',debater2:'Second Speaker',empty:'Empty',seatClaimed:'Seat claimed',volReady:'Volume ready',volFailed:'Volume detection failed: ',simDone:'Simulated 4 debaters ✓',seatsReset:'Seats + timer + Prep reset ✓',fbNotConn:'Firebase not connected',resetClaim:'Switch seat — reselect'},
-  zh:{profile:'个人资料',yourName:'你的名字',avatarUrl:'头像 URL（可选，留空用首字母）',loading:'加载中…',resetSeats:'重置席位',connectFb:'连接 Firebase',fbNeeded:'需要 Firebase URL — 在下面粘贴（只需一次）',connecting:'连接 Firebase…',fbConnected:'Firebase 已连 ✓ — 填名字选阵营',fbFailed:'Firebase 失败: ',fbPrompt:'https://你的项目.firebaseio.com',waitingTopic:'等待裁判设置辩题…',vs:'Pro 正方 ◀ vs ▶ Con 反方',room:'房间',waitingStart:'等待开始',current:'当前: ',speaking:'开麦: ',chat:'聊天',typeMsg:'发消息…',send:'发',micAll:'🎤 全员',micTeam:'🎤 队内',cam:'📹 摄像',switchSeat:'🔄 换座位',sim4:'👥 模拟4人',leave:'离开',ready:'Ready',joined:'已加入 ✓ — 点 🎤 开麦说话',joining:'加入音频…',sdkNotLoaded:'Agora SDK 没加载 — 赛程/计时/聊天可用，无语音',joinFailed:'加入失败: ',noPerm:'没有操控权限（主持人没给你）',audienceNoCam:'观众不能开摄像头',permPanel:'操控权限（主持人/Judge 管理）',topicInput:'辩题（所有人可设置）',nextSide:'下一步：选阵营 →',chooseSide:'选择阵营',pro:'正方 Pro',con:'反方 Con',judge:'裁判 Judge',audience:'观众 Audience',proSelect:'正方 — 选辩手',conSelect:'反方 — 选辩手',back:'← 返回',seatTaken:'席位被占了，点"重置席位"再试',seatOccupied:'席位已占用',fbWriteFail:'Firebase 写入失败: ',proPrepStart:'正方 Prep 已开始',conPrepStart:'反方 Prep 已开始',prepStopped:'Prep 已停止',leftRoom:'已离开房间 — 可手动关闭此页面',micAllOn:'🔇 全员静',micTeamOn:'🔇 队内静',proPrep:'正方 Prep',conPrep:'反方 Prep',stopPrep:'⏹ 停止 Prep',autoAdv:'🔗 连续',autoAdvOn:'🔗 ✓',firstSpk:'一辩',secondSpk:'二辩',debater1:'一辩',debater2:'二辩',empty:'空',seatClaimed:'席位已占',volReady:'音量检测就绪',volFailed:'音量检测失败: ',simDone:'已模拟4人 ✓',seatsReset:'席位+计时器+Prep 已重置 ✓',fbNotConn:'Firebase 没连',resetClaim:'换座位 — 重新选择'}
+  en:{profile:'Profile',yourName:'Your name',avatarUrl:'Avatar URL (optional)',loading:'Loading…',resetSeats:'Reset Seats',connectFb:'Connect Firebase',fbNeeded:'Firebase URL required — paste below',connecting:'Connecting…',fbConnected:'Firebase connected ✓ — Enter name and pick side',fbFailed:'Firebase failed: ',fbPrompt:'https://your-project.firebaseio.com',waitingTopic:'Waiting for judge to set topic…',vs:'Pro ◀ vs ▶ Con',room:'Room',waitingStart:'Waiting to start',current:'Current: ',speaking:'Speaking: ',chat:'Chat',typeMsg:'Type a message…',send:'Send',micAll:'🎤 All',micTeam:'🎤 Team',cam:'📹 Camera',switchSeat:'🔄 Switch',sim4:'👥 Sim 4',leave:'Leave',ready:'Ready',joined:'Joined ✓ — click mic to speak',joining:'Joining audio…',sdkNotLoaded:'Agora SDK not loaded — schedule/timer/chat work, no voice',joinFailed:'Join failed: ',noPerm:'No control permission (Judge hasn\'t granted)',audienceNoCam:'Audience can\'t use camera',permPanel:'Controls (managed by Judge)',topicInput:'Topic (anyone can set)',nextSide:'Next: Choose side →',chooseSide:'Choose Side',pro:'Pro',con:'Con',judge:'Judge',audience:'Audience',proSelect:'Pro — Select Debater',conSelect:'Con — Select Debater',back:'← Back',seatTaken:'Seat taken — click Reset Seats',seatOccupied:'Seat occupied',fbWriteFail:'Firebase write failed: ',proPrepStart:'Pro Prep started',conPrepStart:'Con Prep started',prepStopped:'Prep stopped',leftRoom:'Left room — you can close this page',micAllOn:'🔇 All Mute',micTeamOn:'🔇 Team Mute',proPrep:'Pro Prep',conPrep:'Con Prep',stopPrep:'⏹ Stop Prep',autoAdv:'🔗 Auto',autoAdvOn:'🔗 ✓',firstSpk:'First Speaker',secondSpk:'Second Speaker',debater1:'First Speaker',debater2:'Second Speaker',empty:'Empty',seatClaimed:'Seat claimed',volReady:'Volume ready',volFailed:'Volume detection failed: ',simDone:'Simulated 4 debaters ✓',seatsReset:'Seats + timer + Prep reset ✓',fbNotConn:'Firebase not connected',resetClaim:'Switch seat — reselect',seatOccupiedMsg:'Seat "{role}" is occupied. Click Reset Seats to clear old data and retry.',seatSpeaking:'🔊 Speaking',seatMuted:'🔇 Muted',controlShort:'Controls ',remaining:'remaining',proRemaining:'Pro remaining ',conRemaining:'Con remaining ',camOff:'📹 Cam Off',camOn:'📹 Cam On',camOnOk:'Camera on ✓',camFailed:'Camera failed: ',simConfirm:'Real debaters are seated. Simulation will overwrite their seat data. Continue?',simTag:' (sim)',simName1:'Alice',simName2:'Bob',simName3:'Carol',simName4:'Dave'},
+  zh:{profile:'个人资料',yourName:'你的名字',avatarUrl:'头像 URL（可选，留空用首字母）',loading:'加载中…',resetSeats:'重置席位',connectFb:'连接 Firebase',fbNeeded:'需要 Firebase URL — 在下面粘贴（只需一次）',connecting:'连接 Firebase…',fbConnected:'Firebase 已连 ✓ — 填名字选阵营',fbFailed:'Firebase 失败: ',fbPrompt:'https://你的项目.firebaseio.com',waitingTopic:'等待裁判设置辩题…',vs:'Pro 正方 ◀ vs ▶ Con 反方',room:'房间',waitingStart:'等待开始',current:'当前: ',speaking:'开麦: ',chat:'聊天',typeMsg:'发消息…',send:'发',micAll:'🎤 全员',micTeam:'🎤 队内',cam:'📹 摄像',switchSeat:'🔄 换座位',sim4:'👥 模拟4人',leave:'离开',ready:'Ready',joined:'已加入 ✓ — 点 🎤 开麦说话',joining:'加入音频…',sdkNotLoaded:'Agora SDK 没加载 — 赛程/计时/聊天可用，无语音',joinFailed:'加入失败: ',noPerm:'没有操控权限（主持人没给你）',audienceNoCam:'观众不能开摄像头',permPanel:'操控权限（主持人/Judge 管理）',topicInput:'辩题（所有人可设置）',nextSide:'下一步：选阵营 →',chooseSide:'选择阵营',pro:'正方 Pro',con:'反方 Con',judge:'裁判 Judge',audience:'观众 Audience',proSelect:'正方 — 选辩手',conSelect:'反方 — 选辩手',back:'← 返回',seatTaken:'席位被占了，点"重置席位"再试',seatOccupied:'席位已占用',fbWriteFail:'Firebase 写入失败: ',proPrepStart:'正方 Prep 已开始',conPrepStart:'反方 Prep 已开始',prepStopped:'Prep 已停止',leftRoom:'已离开房间 — 可手动关闭此页面',micAllOn:'🔇 全员静',micTeamOn:'🔇 队内静',proPrep:'正方 Prep',conPrep:'反方 Prep',stopPrep:'⏹ 停止 Prep',autoAdv:'🔗 连续',autoAdvOn:'🔗 ✓',firstSpk:'一辩',secondSpk:'二辩',debater1:'一辩',debater2:'二辩',empty:'空',seatClaimed:'席位已占',volReady:'音量检测就绪',volFailed:'音量检测失败: ',simDone:'已模拟4人 ✓',seatsReset:'席位+计时器+Prep 已重置 ✓',fbNotConn:'Firebase 没连',resetClaim:'换座位 — 重新选择',seatOccupiedMsg:'席位 "{role}" 已被占用。点下方"重置席位"清掉旧数据再选。',seatSpeaking:'🔊 发言中',seatMuted:'🔇 静音',controlShort:'操控 ',remaining:'剩余',proRemaining:'正方剩余 ',conRemaining:'反方剩余 ',camOff:'📹 关摄像',camOn:'📹 开摄像',camOnOk:'摄像头已开 ✓',camFailed:'摄像头失败: ',simConfirm:'已有真实辩手入座，模拟会覆盖其席位数据，确定？',simTag:'(模拟)',simName1:'张三',simName2:'李四',simName3:'王五',simName4:'赵六'}
 };
 function t(k){return (I18N[LANG]&&I18N[LANG][k])||I18N.en[k]||k}
 function applyLang(){
@@ -207,6 +207,7 @@ function applyLang(){
   $('stLine').textContent=t('ready');
   $('topicInput').placeholder=t('topicInput');
   $('fbManual').placeholder=t('fbPrompt');
+  $('fbManualBtn').textContent=t('connectFb');
   $('vsLabel').innerHTML=t('vs')+' · '+t('room')+' <span id="roomCode" style="color:var(--pro);font-weight:600"></span>';
   $('chatHead').textContent=t('chat');
   $('permLabel').textContent=t('permPanel');
@@ -214,6 +215,10 @@ function applyLang(){
   $('conPrepBtn').textContent=t('conPrep');
   $('stopPrepBtn').textContent=t('stopPrep');
   $('autoAdvBtn').textContent=t('autoAdv');
+  $('role-Pro-1').textContent='Pro-1 '+t('debater1');
+  $('role-Pro-2').textContent='Pro-2 '+t('debater2');
+  $('role-Con-1').textContent='Con-1 '+t('debater1');
+  $('role-Con-2').textContent='Con-2 '+t('debater2');
 }
 try{applyLang()}catch(e){console.log('applyLang error',e)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -281,12 +286,12 @@ async function claimSeat(role){
     fPush(fr('rooms/'+channel+'/audience'),{uid:myUid,displayName:myName,avatar:myAvatar,ts:Date.now()});
     startRoom();return;
   }
-  if(seats[role]){$('claimStatus').textContent='席位 "'+role+'" 已被占用。点下方"重置席位"清掉旧数据再选。';$('claimStatus').className='cs err';return}
+  if(seats[role]){$('claimStatus').textContent=t('seatOccupiedMsg').replace('{role}',role);$('claimStatus').className='cs err';return}
   var ok=false;
   try{await fTxn(fr('rooms/'+channel+'/seats/'+role),function(c){if(c===null){c={uid:UID[role]||Math.floor(Math.random()*900)+100,displayName:myName,avatar:myAvatar,claimedAt:Date.now()};ok=true;return c}return})}
-  catch(e){$('claimStatus').textContent='Firebase 写入失败: '+e.message;$('claimStatus').className='cs err';return}
+  catch(e){$('claimStatus').textContent=t('fbWriteFail')+e.message;$('claimStatus').className='cs err';return}
   if(ok){myRole=role;myUid=UID[role]||Math.floor(Math.random()*900)+100;fSet(fr('rooms/'+channel+'/roster/'+myUid),role);startRoom()}
-  else{$('claimStatus').textContent='席位被占了，点"重置席位"再试';$('claimStatus').className='cs err'}
+  else{$('claimStatus').textContent=t('seatTaken');$('claimStatus').className='cs err'}
 }
 /* Start room */
 async function startRoom(){
@@ -294,7 +299,7 @@ async function startRoom(){
   if(myRole==='Judge'){$('judgeRow').style.display='flex'}
   // ALL users can control (for testing — not just Judge)
   $('judgeCtrl').style.display='flex';
-  renderSeats();$('stLine').textContent='加入音频…';$('roomCode').textContent=channel;
+  renderSeats();$('stLine').textContent=t('joining');$('roomCode').textContent=channel;
   // Firebase listeners first — work even if Agora SDK fails to load (H4)
   fOn(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v&&typeof v==='number'){curPhase=v;enforcePhase(v);renderPhase()}});
   fOn(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderSeats()});
@@ -309,17 +314,17 @@ async function startRoom(){
   // onDisconnect cleanup — release seat if this client drops without clicking leave (M1)
   if(myRole&&myRole!=='Audience'){try{fm[1].onDisconnect(fr('rooms/'+channel+'/seats/'+myRole)).set(null)}catch(e){}}
   if(myUid){try{fm[1].onDisconnect(fr('rooms/'+channel+'/roster/'+myUid)).set(null)}catch(e){}}
-  if(typeof AgoraRTC==='undefined'){$('stLine').textContent='Agora SDK 没加载 — 赛程/计时/聊天可用，无语音';return}
+  if(typeof AgoraRTC==='undefined'){$('stLine').textContent=t('sdkNotLoaded');return}
   try{
     client=AgoraRTC.createClient({mode:'rtc',codec:'vp8'});
     client.on('user-published',onPub);client.on('user-unpublished',onUnpub);client.on('user-left',function(){renderSeats()});
     client.on('token-privilege-will-expire',async function(){try{await client.renewToken(await mkToken(channel,myUid))}catch(e){}});
     var token=await mkToken(channel,myUid);await client.join(APP_ID,channel,token,myUid);
     var realMicId=null;try{var devs=await navigator.mediaDevices.enumerateDevices();var real=devs.filter(function(d){return d.kind==='audioinput'&&d.label&&d.label.indexOf('BlackHole')<0});if(real.length>0)realMicId=real[0].deviceId}catch(e){}
-    mic=await AgoraRTC.createMicrophoneAudioTrack(realMicId?{microphoneId:realMicId}:undefined);await client.publish(mic);await mic.setMuted(true);micMode=null;updateMicBtns();
-    $('stLine').textContent='已加入 ✓ — 点 🎤 开麦说话';$('stLine').className='st ok';
+    mic=await AgoraRTC.createMicrophoneAudioTrack(realMicId?{microphoneId:realMicId}:undefined);await client.publish(mic);await mic.setMuted(true);micMode=null;updateMicBtns();if(!analyser){setupLocalVolume()}
+    $('stLine').textContent=t('joined');$('stLine').className='st ok';
     enforcePhase(curPhase);startAudioPoll();
-  }catch(e){$('stLine').textContent='加入失败: '+e.message;$('stLine').className='st err'}
+  }catch(e){$('stLine').textContent=t('joinFailed')+e.message;$('stLine').className='st err'}
 }
 /* Agora events */
 function roleOf(uid){return ROLE_OF[uid]||(uid>=401?'Audience':'?')}
@@ -337,7 +342,7 @@ async function micClick(mode){
   else{if(!analyser){await setupLocalVolume()}await mic.setMuted(false);micMode=mode;fSet(fr('rooms/'+channel+'/micMode/'+myRole),mode)}
   updateMicBtns();
 }
-function updateMicBtns(){var a=$('micAllBtn'),t=$('micTeamBtn');if(!a||!t)return;a.textContent=micMode==='all'?'🔇 全员静':'🎤 全员';t.textContent=micMode==='team'?'🔇 队内静':'🎤 队内';a.style.background=micMode==='all'?'var(--ok)':'var(--accent)';t.style.background=micMode==='team'?'var(--con)':'var(--accent)'}
+function updateMicBtns(){var a=$('micAllBtn'),tm=$('micTeamBtn');if(!a||!tm)return;a.textContent=micMode==='all'?t('micAllOn'):t('micAll');tm.textContent=micMode==='team'?t('micTeamOn'):t('micTeam');a.style.background=micMode==='all'?'var(--ok)':'var(--accent)';tm.style.background=micMode==='team'?'var(--con)':'var(--accent)'}
 async function enforcePhase(phase){
   var rule=PHASES.find(function(p){return p.n===phase})||PHASES[0];
   // mic is USER-CONTROLLED — not auto-muted by phase. Privacy = selective subscribe.
@@ -349,16 +354,16 @@ async function enforcePhase(phase){
   autoAdvanced=false; // reset auto-advance flag on phase change
 }
 function renderPhase(){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
-  $('nowSpeaking').textContent='当前: '+rule.name;$('nextUp').textContent='开麦: '+rule.pub.join(', ');renderPhaseSeq()}
+  $('nowSpeaking').textContent=t('current')+rule.name;$('nextUp').textContent=t('speaking')+rule.pub.join(', ');renderPhaseSeq()}
 function renderPhaseSeq(){var box=$('phaseSeq');if(!box)return;box.innerHTML='';PHASES.forEach(function(p){var d=document.createElement('div');d.textContent=p.n+'. '+p.name+' ('+fmt(p.sec)+')';if(p.n===curPhase){d.style.color='var(--pro)';d.style.fontWeight='600'}else if(p.n<curPhase){d.style.color='var(--muted)'}box.appendChild(d)})}
 function renderSeats(){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];
   ['Pro-1','Pro-2','Con-1','Con-2','Judge'].forEach(function(r){
     var occ=seats[r];var live=rule.pub.includes(r);
-    var n=$('nm-'+r);if(n)n.textContent=occ?occ.displayName:'空';
+    var n=$('nm-'+r);if(n)n.textContent=occ?occ.displayName:t('empty');
     var av=$('av-'+r);if(av){av.className='avatar'+(r==='Judge'?' judge':'')+(live&&occ?' speaking':'')+(!live&&occ?' muted':'');if(occ)setAvatar(r,occ.avatar,occ.displayName);else av.textContent=r==='Judge'?'J':r.slice(-1)}
-    var st=$('st-'+r);if(st)st.textContent=occ?(live?'🔊 发言中':'🔇 静音'):'—';if(st)st.className='status '+(live&&occ?'on':'off');
+    var st=$('st-'+r);if(st)st.textContent=occ?(live?t('seatSpeaking'):t('seatMuted')):'—';if(st)st.className='status '+(live&&occ?'on':'off');
     // permission display
-    var pm=$('perm-'+r);if(pm){var has=perms[r]!==false;pm.textContent='操控 '+(has?'✓':'✗');pm.className='perm '+(has?'y':'n')}
+    var pm=$('perm-'+r);if(pm){var has=perms[r]!==false;pm.textContent=t('controlShort')+(has?'✓':'✗');pm.className='perm '+(has?'y':'n')}
   });
   renderPermBtns();
 }
@@ -383,7 +388,7 @@ function renderTimer(){var box=$('timerNum');var fill=$('progFill');
     fill.className='progress-fill'+(rem<=30?' warn':'')+(rem<=0?' done':'');
     if(rem<=0&&autoAdvance&&!autoAdvanced){autoAdvanced=true;if(curPhase>=11){fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:PHASES.find(function(p){return p.n===11}).sec,remainingSec:0});return}var next=Math.min(11,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),next);var r=PHASES.find(function(p){return p.n===next});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+r.sec*1000,durationSec:r.sec,remainingSec:r.sec})}}
   if(timerTick)clearInterval(timerTick);tick();if(timerRunning)timerTick=setInterval(tick,1000)}
-$('autoAdvBtn').onclick=function(){autoAdvance=!autoAdvance;$('autoAdvBtn').style.background=autoAdvance?'var(--ok)':'var(--accent)';$('autoAdvBtn').textContent=autoAdvance?'🔗 ✓':'🔗 连续'};
+$('autoAdvBtn').onclick=function(){autoAdvance=!autoAdvance;$('autoAdvBtn').style.background=autoAdvance?'var(--ok)':'var(--accent)';$('autoAdvBtn').textContent=autoAdvance?t('autoAdvOn'):t('autoAdv')};
 function renderChat(msgs){var l=$('chatList');l.innerHTML='';var keys=Object.keys(msgs).sort();
   keys.forEach(function(k){var m=msgs[k];if(!m)return;var d=document.createElement('div');
     if(m.sys){d.className='chat-msg sys';d.textContent=m.text}
@@ -395,18 +400,15 @@ async function setupLocalVolume(){
   try{
     audioCtx=new (window.AudioContext||window.webkitAudioContext)();
     if(audioCtx.state==='suspended'){audioCtx.resume()}
-    var track=null;
-    if(mic&&mic.mediaStreamTrack){track=mic.mediaStreamTrack}
-    else if(mic&&typeof mic.getMediaStreamTrack==='function'){track=mic.getMediaStreamTrack()}
-    if(!track){var rmid=null;try{var ds=await navigator.mediaDevices.enumerateDevices();var rl=ds.filter(function(d){return d.kind==='audioinput'&&d.label&&d.label.indexOf('BlackHole')<0});if(rl.length>0)rmid=rl[0].deviceId}catch(e){};micStream=await navigator.mediaDevices.getUserMedia(rmid?{audio:{deviceId:{exact:rmid}}}:{audio:true});track=micStream.getAudioTracks()[0]}
+    var rmid=null;try{var ds=await navigator.mediaDevices.enumerateDevices();var rl=ds.filter(function(d){return d.kind==='audioinput'&&d.label&&d.label.indexOf('BlackHole')<0});if(rl.length>0)rmid=rl[0].deviceId}catch(e){}
+    micStream=await navigator.mediaDevices.getUserMedia(rmid?{audio:{deviceId:{exact:rmid}}}:{audio:true});var track=micStream.getAudioTracks()[0];
     var src=audioCtx.createMediaStreamSource(new MediaStream([track]));
     analyser=audioCtx.createAnalyser();analyser.fftSize=256;
     src.connect(analyser);
     var g=audioCtx.createGain();g.gain.value=0;analyser.connect(g);g.connect(audioCtx.destination);
     micFreqData=new Uint8Array(analyser.frequencyBinCount);
-    $('stLine').textContent='音量检测 ctx:'+audioCtx.state+' track:'+(track?track.label.slice(0,20):'NONE');
     console.log('AUDIO_DEBUG ctx:',audioCtx.state,'track:',track?track.label:'none','muted:',track?track.muted:'?');
-  }catch(e){$('stLine').textContent='音量检测失败: '+e.message;$('stLine').className='st err';console.log('setup failed',e)}
+  }catch(e){console.log('setup failed',e)}
 }
 function getLocalVolume(){if(!analyser)return 0;analyser.getByteFrequencyData(micFreqData);var s=0;for(var i=0;i<micFreqData.length;i++)s+=micFreqData[i];return s/micFreqData.length/255}
 function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInterval(function(){
@@ -417,7 +419,7 @@ function startAudioPoll(){if(audioPoll)clearInterval(audioPoll);audioPoll=setInt
 },200)}
 function rule_pub_has(role){var rule=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];return rule.pub.includes(role)}
 /* Judge controls — check permission */
-function needPerm(fn){return function(){if(!canControl()){$('stLine').textContent='没有操控权限（主持人没给你）';return}fn()}}
+function needPerm(fn){return function(){if(!canControl()){$('stLine').textContent=t('noPerm');return}fn()}}
 $('phNext').onclick=needPerm(function(){var n=Math.min(11,curPhase+1);fSet(fr('rooms/'+channel+'/phase'),n);var r=PHASES.find(function(p){return p.n===n});if(r)fSet(fr('rooms/'+channel+'/timer'),{running:false,endsAt:0,durationSec:r.sec,remainingSec:r.sec})});
 $('phPrev').onclick=needPerm(function(){fSet(fr('rooms/'+channel+'/phase'),Math.max(1,curPhase-1))});
 $('tStart').onclick=needPerm(function(){var r=PHASES.find(function(p){return p.n===curPhase})||PHASES[0];if(timerRunning)return;var rem=timerRem>0?timerRem:r.sec;fSet(fr('rooms/'+channel+'/timer'),{running:true,endsAt:Date.now()+rem*1000,durationSec:r.sec,remainingSec:rem})});
@@ -449,27 +451,27 @@ function renderPrep(){
 $('proPrepBtn').onclick=needPerm(function(){
   var rem=proPrepRem>0?proPrepRem:PREP_SEC;
   fSet(fr('rooms/'+channel+'/proPrep'),{running:true,endsAt:Date.now()+rem*1000,durationSec:PREP_SEC,remaining:rem});
-  $('stLine').textContent='正方 Prep 已开始 — '+fmt(rem)+' remaining';
+  $('stLine').textContent=t('proPrepStart')+' — '+fmt(rem)+' '+t('remaining');
 });
 $('conPrepBtn').onclick=needPerm(function(){
   var rem=conPrepRem>0?conPrepRem:PREP_SEC;
   fSet(fr('rooms/'+channel+'/conPrep'),{running:true,endsAt:Date.now()+rem*1000,durationSec:PREP_SEC,remaining:rem});
-  $('stLine').textContent='反方 Prep 已开始 — '+fmt(rem)+' remaining';
+  $('stLine').textContent=t('conPrepStart')+' — '+fmt(rem)+' '+t('remaining');
 });
 $('stopPrepBtn').onclick=needPerm(function(){
   /* stop whichever prep is running, freeze remaining at the current countdown */
   if(proPrepState.running){var rem=Math.max(0,Math.round((proPrepState.endsAt-Date.now())/1000));proPrepRem=rem;fSet(fr('rooms/'+channel+'/proPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:rem})}
   if(conPrepState.running){var rem=Math.max(0,Math.round((conPrepState.endsAt-Date.now())/1000));conPrepRem=rem;fSet(fr('rooms/'+channel+'/conPrep'),{running:false,endsAt:0,durationSec:PREP_SEC,remaining:rem})}
-  $('stLine').textContent='Prep 已停止 — 正方剩余 '+fmt(proPrepRem)+' 反方剩余 '+fmt(conPrepRem);
+  $('stLine').textContent=t('prepStopped')+' — '+t('proRemaining')+fmt(proPrepRem)+' '+t('conRemaining')+fmt(conPrepRem);
 });
 /* Simulate 4 debaters — fills seats with mock data so Judge can see the full room */
 $('simBtn').onclick=function(){
-  if(seats['Pro-1']||seats['Pro-2']||seats['Con-1']||seats['Con-2']){if(!confirm('已有真实辩手入座，模拟会覆盖其席位数据，确定？'))return}
-  [['Pro-1',101,'张三'],['Pro-2',102,'李四'],['Con-1',201,'王五'],['Con-2',202,'赵六']].forEach(function(d){
-    fSet(fr('rooms/'+channel+'/seats/'+d[0]),{uid:d[1],displayName:d[2]+'(模拟)',avatar:'',claimedAt:Date.now()});
+  if(seats['Pro-1']||seats['Pro-2']||seats['Con-1']||seats['Con-2']){if(!confirm(t('simConfirm')))return}
+  [['Pro-1',101,t('simName1')],['Pro-2',102,t('simName2')],['Con-1',201,t('simName3')],['Con-2',202,t('simName4')]].forEach(function(d){
+    fSet(fr('rooms/'+channel+'/seats/'+d[0]),{uid:d[1],displayName:d[2]+t('simTag'),avatar:'',claimedAt:Date.now()});
     fSet(fr('rooms/'+channel+'/roster/'+d[1]),d[0]);
   });
-  $('stLine').textContent='已模拟4人 ✓ — 正方: 张三(一辩) 李四(二辩) / 反方: 王五(一辩) 赵六(二辩)';
+  $('stLine').textContent=t('simDone');
   $('stLine').className='st ok';
 };
 /* Chat */
@@ -478,8 +480,8 @@ function sendChat(){var t=$('chatInput').value.trim();if(!t)return;$('chatInput'
 /* Mic/Cam/Leave */
 $('micAllBtn').onclick=function(){micClick('all')};
 $('micTeamBtn').onclick=function(){micClick('team')};
-$('camBtn').onclick=async function(){if(!myRole||myRole==='Audience'){$('stLine').textContent='观众不能开摄像头';$('stLine').className='st err';return}if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);camEnabled=true;$('camBtn').textContent='📹 关摄像';var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)};$('stLine').textContent='摄像头已开 ✓';$('stLine').className='st ok'}catch(e){cam=null;$('stLine').textContent='摄像头失败: '+e.message;$('stLine').className='st err';return}}else{camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?'📹 关摄像':'📹 开摄像';if(camEnabled){var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)}}else{var box2=$('av-'+myRole);if(box2){box2.innerHTML='';var occ=seats[myRole];if(occ)setAvatar(myRole,occ.avatar,occ.displayName);else box2.textContent=myRole==='Judge'?'J':myRole.slice(-1)}}}enforcePhase(curPhase)};
-$('leaveBtn').onclick=function(){try{if(mic)mic.close()}catch(e){}try{if(cam)cam.close()}catch(e){}try{if(client)client.leave()}catch(e){}if(myRole&&myRole!=='Audience')fSet(fr('rooms/'+channel+'/seats/'+myRole),null);if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);$('stLine').textContent='已离开房间 — 可手动关闭此页面';$('stLine').className='st ok'};
+$('camBtn').onclick=async function(){if(!myRole||myRole==='Audience'){$('stLine').textContent=t('audienceNoCam');$('stLine').className='st err';return}if(!cam){try{cam=await AgoraRTC.createCameraVideoTrack();await client.publish(cam);camEnabled=true;$('camBtn').textContent=t('camOff');var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)};$('stLine').textContent=t('camOnOk');$('stLine').className='st ok'}catch(e){cam=null;$('stLine').textContent=t('camFailed')+e.message;$('stLine').className='st err';return}}else{camEnabled=!camEnabled;cam.setMuted(!camEnabled);$('camBtn').textContent=camEnabled?t('camOff'):t('camOn');if(camEnabled){var box=$('av-'+myRole);if(box){box.innerHTML='';cam.play(box)}}else{var box2=$('av-'+myRole);if(box2){box2.innerHTML='';var occ=seats[myRole];if(occ)setAvatar(myRole,occ.avatar,occ.displayName);else box2.textContent=myRole==='Judge'?'J':myRole.slice(-1)}}}enforcePhase(curPhase)};
+$('leaveBtn').onclick=function(){try{if(mic)mic.close()}catch(e){}try{if(cam)cam.close()}catch(e){}try{if(client)client.leave()}catch(e){}if(myRole&&myRole!=='Audience')fSet(fr('rooms/'+channel+'/seats/'+myRole),null);if(myUid)fSet(fr('rooms/'+channel+'/roster/'+myUid),null);$('stLine').textContent=t('leftRoom');$('stLine').className='st ok'};
 /* Switch seat — release current seat, go back to claim screen */
 $('switchBtn').onclick=async function(){
   try{if(mic)mic.close()}catch(e){}
@@ -494,7 +496,7 @@ $('switchBtn').onclick=async function(){
   if(prepTick)clearInterval(prepTick);
   $('room').style.display='none';
   $('claim').style.display='flex';
-  $('claimStatus').textContent='换座位 — 重新选择';
+  $('claimStatus').textContent=t('resetClaim');
   renderClaim();
 };
 /* Swap-request feature removed (was dead code — requestSwap had no UI binding, acceptSwap had a
@@ -507,10 +509,10 @@ renderClaim();
 async function init(){var cs=$('claimStatus');
   // Try URL param first, then firebase-config.js constant, then manual input
   if(!fbUrl && typeof FIREBASE_URL!=='undefined' && FIREBASE_URL){fbUrl=FIREBASE_URL}
-  if(!fbUrl){cs.innerHTML='需要 Firebase URL — 在下面粘贴（只需一次）';cs.className='cs err';$('fbFallback').style.display='block';return}
-  cs.textContent='连接 Firebase…';
-  try{await ensureFB(fbUrl)}catch(e){cs.textContent='Firebase 失败: '+e.message;cs.className='cs err';$('fbFallback').style.display='block';return}
-  cs.textContent='Firebase 已连 ✓ — 填名字选阵营';cs.className='cs';
+  if(!fbUrl){cs.innerHTML=t('fbNeeded');cs.className='cs err';$('fbFallback').style.display='block';return}
+  cs.textContent=t('connecting');
+  try{await ensureFB(fbUrl)}catch(e){cs.textContent=t('fbFailed')+e.message;cs.className='cs err';$('fbFallback').style.display='block';return}
+  cs.textContent=t('fbConnected');cs.className='cs';
   fm[1].onValue(fr('rooms/'+channel+'/seats'),function(s){seats=s.val()||{};renderClaim()});
   fm[1].onValue(fr('rooms/'+channel+'/phase'),function(s){var v=s.val();if(v)curPhase=v});
 }
